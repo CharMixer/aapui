@@ -1,1 +1,1 @@
-# golang-cp-fe
+# Golang Content Provider backend
