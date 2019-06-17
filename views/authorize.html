@@ -1,0 +1,35 @@
+<head>
+
+  <meta charset="utf-8">
+
+  <title>Authorization</title>
+  <meta name="description" content="Authorization">
+  <meta name="author" content="Company">
+
+  <link rel="stylesheet" type="text/css" href="/public/css/main.css">
+
+</head>
+<body>
+
+  <div id="top-spacer"></div>
+
+  <div id="content-wrapper">
+    <img src="/public/images/fingerprint.svg" alt="Fingerprint" id="fingerprint" />
+    <h1>Consent Provider</h1>
+
+    <form action="/authorize" method="post">
+
+      <input type="checkbox" id="consent_1" name="consents[]" value="consent-id-1">
+      <label for="consent_1">Consent 1</label>
+      <input type="checkbox" id="consent_2" name="consents[]" value="consent-id-2">
+      <label for="consent_2">Consent 2</label>
+      <input type="checkbox" id="consent_3" name="consents[]" value="consent-id-3">
+      <label for="consent_3">Consent 3</label>
+
+      <input type="submit" name="submit" value="Accept" />
+    </form>
+
+  </div>
+
+  <script type="text/javascript"></script>
+</body>
