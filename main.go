@@ -1,11 +1,16 @@
 package main
 
 import (
-    "github.com/gin-gonic/gin"
+  "github.com/gin-gonic/gin"
+  "golang-cp-fe/config"
 )
 
 type authorizeForm struct {
     Consents []string `form:"consents[]"`
+}
+
+func init() {
+  config.InitConfigurations()
 }
 
 func main() {
