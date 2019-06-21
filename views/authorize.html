@@ -17,16 +17,16 @@
     <img src="/public/images/fingerprint.svg" alt="Fingerprint" id="fingerprint" />
     <h1>Consent Provider</h1>
 
-    <form action="/authorize" method="post">
+    <form action="/authorize?challenge={{ .challenge }}" method="post">
+      {{ .csrfField }}
 
-      <input type="checkbox" id="consent_1" name="consents[]" value="consent-id-1">
-      <label for="consent_1">Consent 1</label>
-      <input type="checkbox" id="consent_2" name="consents[]" value="consent-id-2">
-      <label for="consent_2">Consent 2</label>
-      <input type="checkbox" id="consent_3" name="consents[]" value="consent-id-3">
-      <label for="consent_3">Consent 3</label>
+      {{ range $key, $scope := .requested_scopes }}
+        <input type="checkbox" id="consent_{{ $key }}" name="consents[]" value="{{ $scope.name }}">
+        <label for="consent_{{ $key }}">{{ $scope.name }}</label>
+      {{ end }}
 
-      <input type="submit" name="submit" value="Accept" />
+      <input type="submit" name="accept" value="Accept" />
+      <input type="submit" name="deny" value="Deny" />
     </form>
 
   </div>
