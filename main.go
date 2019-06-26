@@ -2,28 +2,55 @@ package main
 
 import (
   "github.com/gin-gonic/gin"
-  "golang-cp-fe/config"
-  "golang-cp-fe/interfaces"
-  "golang-cp-fe/gateway/cpbe"
+  "golang.org/x/oauth2"
+  "golang.org/x/oauth2/clientcredentials"
   "github.com/gorilla/csrf"
   "github.com/gwatts/gin-adapter"
   "fmt"
+  "net/http"
+  "net/url"
+  "golang-cp-fe/config"
+  "golang-cp-fe/interfaces"
+  "golang-cp-fe/gateway/cpbe"
+  "golang-cp-fe/gateway/cpfe"
 )
 
 type authorizeForm struct {
     Consents []string `form:"consents[]"`
 }
 
+var (
+  cpbeClient *http.Client
+)
+
 func init() {
   config.InitConfigurations()
 }
 
 func main() {
+
+  // Initialize the idp-be http client with client credentials token for use in the API.
+  var cpbeClientCredentialsConfig *clientcredentials.Config = &clientcredentials.Config{
+    ClientID:     config.CpFe.ClientId,
+    ClientSecret: config.CpFe.ClientSecret,
+    TokenURL:     config.Hydra.TokenUrl,
+    Scopes:       config.CpFe.RequiredScopes,
+    EndpointParams: url.Values{"audience": {"cpbe"}},
+    AuthStyle: 2, // https://godoc.org/golang.org/x/oauth2#AuthStyle
+  }
+  cpbeToken, err := cpfe.RequestAccessTokenForCpBe(cpbeClientCredentialsConfig)
+  if err != nil {
+    fmt.Println("Unable to aquire cpbe access token. Error: " + err.Error())
+    return
+  }
+  fmt.Println(cpbeToken) // FIXME Do not log this!!
+  cpbeClient = cpbeClientCredentialsConfig.Client(oauth2.NoContext)
+
     r := gin.Default()
 
     // Use CSRF on all our forms.
     fmt.Println("Using insecure CSRF for devlopment. Do not do this in production")
-    adapterCSRF := adapter.Wrap(csrf.Protect([]byte(config.CPFe.CsrfAuthKey), csrf.Secure(false)))
+    adapterCSRF := adapter.Wrap(csrf.Protect([]byte(config.CpFe.CsrfAuthKey), csrf.Secure(false)))
     // r.Use(adapterCSRF) // Do not use this as it will make csrf tokens for public files aswell which is just extra data going over the wire, no need for that.
 
     r.Static("/public", "public")
@@ -38,11 +65,30 @@ func main() {
 }
 
 func getAuthorizeHandler(c *gin.Context) {
-
   // comes from hydra redirect
-  challenge := c.Query("consent_challenge")
+  consentChallenge := c.Query("consent_challenge")
+  if consentChallenge == "" {
+    c.JSON(http.StatusNotFound, gin.H{"error": "Missing consent challenge"})
+    c.Abort()
+    return
+  }
 
-  cpBeAuthorizationsAuthorizeResponse, _ := cpbe.GetAuthorizationsAuthorize(challenge)
+  var authorizeRequest = interfaces.CPBePostAuthorizationsAuthorizeRequest{
+    Challenge: consentChallenge,
+  }
+  authorizeResponse, err := cpbe.Authorize(config.CpBe.AuthorizationsAuthorizeUrl, cpbeClient, authorizeRequest)
+  if err != nil {
+    c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+    c.Abort()
+    return
+  }
+  if authorizeResponse.Authorized {
+    c.Redirect(http.StatusFound, authorizeResponse.RedirectTo)
+    c.Abort()
+    return
+  }
+
+  cpBeAuthorizationsAuthorizeResponse, _ := cpbe.GetAuthorizationsAuthorize(consentChallenge)
 
   var consents = make(map[int]map[string]string)
   for index, name := range cpBeAuthorizationsAuthorizeResponse.RequestedScopes {
@@ -53,10 +99,11 @@ func getAuthorizeHandler(c *gin.Context) {
     }
   }
 
+
   c.HTML(200, "authorize.html", gin.H{
     csrf.TemplateTag: csrf.TemplateField(c.Request),
     "requested_scopes": consents,
-    "challenge": challenge,
+    "challenge": consentChallenge,
   })
 }
 
