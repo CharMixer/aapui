@@ -6,8 +6,16 @@ import (
 )
 
 type HydraConfig struct {
-  Url                           string
-  AdminUrl                      string
+  Url             string
+  AdminUrl        string
+  AuthenticateUrl string
+  TokenUrl        string
+  UserInfoUrl     string
+  PublicUrl             string
+  PublicAuthenticateUrl string
+  PublicTokenUrl        string
+  PublicLogoutUrl       string
+  PublicUserInfoUrl     string
 }
 
 type ConsentBackendConfig struct {
@@ -18,6 +26,9 @@ type ConsentBackendConfig struct {
 
 type ConsentFrontendConfig struct {
   CsrfAuthKey string
+  ClientId                      string
+  ClientSecret                  string
+  RequiredScopes                []string
 }
 
 type OAuth2ClientConfig struct {
@@ -29,19 +40,31 @@ type OAuth2ClientConfig struct {
 }
 
 var Hydra HydraConfig
-var CPBe ConsentBackendConfig
-var CPFe ConsentFrontendConfig
+var CpBe ConsentBackendConfig
+var CpFe ConsentFrontendConfig
 var OAuth2Client OAuth2ClientConfig
 
 func InitConfigurations() {
-  Hydra.Url                             = getEnvStrict("HYDRA_URL")
-  Hydra.AdminUrl                        = getEnvStrict("HYDRA_ADMIN_URL")
+  Hydra.Url                   = getEnvStrict("HYDRA_URL")
+  Hydra.AdminUrl              = getEnvStrict("HYDRA_ADMIN_URL")
+  Hydra.AuthenticateUrl       = Hydra.Url + "/oauth2/auth"
+  Hydra.TokenUrl              = Hydra.Url + "/oauth2/token"
+  Hydra.UserInfoUrl           = Hydra.Url + "/userinfo"
 
-  CPBe.Url                              = getEnvStrict("CP_BACKEND_URL")
-  CPBe.AuthorizationsUrl                = CPBe.Url + "/v1/authorizations"
-  CPBe.AuthorizationsAuthorizeUrl       = CPBe.AuthorizationsUrl + "/authorize"
+  Hydra.PublicUrl             = getEnvStrict("HYDRA_PUBLIC_URL")
+  Hydra.PublicLogoutUrl       = Hydra.PublicUrl + "/oauth2/sessions/logout"
+  Hydra.PublicAuthenticateUrl = Hydra.PublicUrl + "/oauth2/auth"
+  Hydra.PublicTokenUrl        = Hydra.PublicUrl + "/oauth2/token"
+  Hydra.PublicUserInfoUrl     = Hydra.PublicUrl + "/userinfo"
 
-  CPFe.CsrfAuthKey                      = getEnv("CP_FRONTEND_CSRF_AUTH_KEY")
+  CpBe.Url                              = getEnvStrict("CP_BACKEND_URL")
+  CpBe.AuthorizationsUrl                = CpBe.Url + "/v1/authorizations"
+  CpBe.AuthorizationsAuthorizeUrl       = CpBe.AuthorizationsUrl + "/authorize"
+
+  CpFe.CsrfAuthKey                      = getEnvStrict("CP_FRONTEND_CSRF_AUTH_KEY")
+  CpFe.ClientId                         = getEnvStrict("CP_FRONTEND_OAUTH2_CLIENT_ID")
+  CpFe.ClientSecret                     = getEnvStrict("CP_FRONTEND_OAUTH2_CLIENT_SECRET")
+  CpFe.RequiredScopes                   = []string{"openid", "cpbe.authorize"}
 
   OAuth2Client.ClientId                 = getEnv("OAUTH2_CLIENT_CLIENT_ID")
   OAuth2Client.ClientSecret             = getEnv("OAUTH2_CLIENT_ClIENT_SECRET")
