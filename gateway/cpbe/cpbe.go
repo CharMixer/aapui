@@ -2,13 +2,32 @@ package cpbe
 
 import (
   "golang-cp-fe/config"
-  "golang-cp-fe/interfaces"
   "net/http"
   "encoding/json"
   "io/ioutil"
   "fmt"
   "bytes"
 )
+
+type GetAuthorizationsAuthorizeResponse struct {
+  RequestedScopes             []string          `json:"requested_scopes"`
+}
+
+type PostAuthorizationsAuthorizeRequest struct {
+  GrantScopes                 []string          `json:"grant_scopes" binding:"required"`
+  Challenge                   string            `json:"challenge" binding:"required"`
+  Session                     struct {
+    AccessToken                 string            `json:"access_token"`
+    IdToken                     string            `json:"id_token"`
+  } `json:"session" binding:"required"`
+}
+
+type PostAuthorizationsAuthorizeResponse struct {
+  GrantScopes                 []string          `json:"grant_scopes" binding:"required"`
+  RequestedScopes             []string          `json:"requested_scopes" binding:"required"`
+  Authorized                  bool              `json:"authorized" binding:"required"`
+  RedirectTo                  string            `json:"redirect_to" binding:"required"`
+}
 
 func getDefaultHeaders() map[string][]string {
   return map[string][]string{
@@ -26,9 +45,8 @@ func getDefaultHeadersWithAuthentication(accessToken string) map[string][]string
   }
 }
 
-func Authorize(authorizeUrl string, client *http.Client, authorizeRequest interfaces.CPBePostAuthorizationsAuthorizeRequest) (interfaces.CPBePostAuthorizationsAuthorizeResponse, error) {
-   var authorizeResponse interfaces.CPBePostAuthorizationsAuthorizeResponse
-
+func Authorize(authorizeUrl string, client *http.Client, authorizeRequest PostAuthorizationsAuthorizeRequest) (PostAuthorizationsAuthorizeResponse, error) {
+   var authorizeResponse PostAuthorizationsAuthorizeResponse
 
    body, _ := json.Marshal(authorizeRequest)
 
@@ -50,8 +68,8 @@ func Authorize(authorizeUrl string, client *http.Client, authorizeRequest interf
   return authorizeResponse, nil
 }
 
-func GetAuthorizationsAuthorize(challenge string) (interfaces.CPBeGetAuthorizationsAuthorizeResponse, error) {
-  var cpBeGetAuthorizationsAuthorizeResponse interfaces.CPBeGetAuthorizationsAuthorizeResponse
+func GetAuthorizationsAuthorize(challenge string) (GetAuthorizationsAuthorizeResponse, error) {
+  var authorizeResponse GetAuthorizationsAuthorizeResponse
 
   client := &http.Client{}
 
@@ -65,18 +83,18 @@ func GetAuthorizationsAuthorize(challenge string) (interfaces.CPBeGetAuthorizati
   response, _ := client.Do(request)
 
   if response.StatusCode == 404 {
-    return cpBeGetAuthorizationsAuthorizeResponse, fmt.Errorf("CP-be: consent request not found from challenge %s", challenge)
+    return authorizeResponse, fmt.Errorf("CP-be: consent request not found from challenge %s", challenge)
   }
 
   responseData, _ := ioutil.ReadAll(response.Body)
 
-  json.Unmarshal(responseData, &cpBeGetAuthorizationsAuthorizeResponse)
+  json.Unmarshal(responseData, &authorizeResponse)
 
-  return cpBeGetAuthorizationsAuthorizeResponse, nil
+  return authorizeResponse, nil
 }
 
-func PostAuthorizationsAuthorize(requestInterface interfaces.CPBePostAuthorizationsAuthorizeRequest) (interfaces.CPBePostAuthorizationsAuthorizeResponse, error) {
-  var responseInterface interfaces.CPBePostAuthorizationsAuthorizeResponse
+func PostAuthorizationsAuthorize(requestInterface PostAuthorizationsAuthorizeRequest) (PostAuthorizationsAuthorizeResponse, error) {
+  var authorizeResponse PostAuthorizationsAuthorizeResponse
 
   client := &http.Client{}
 
@@ -88,12 +106,12 @@ func PostAuthorizationsAuthorize(requestInterface interfaces.CPBePostAuthorizati
   response, _ := client.Do(request)
 
   if response.StatusCode == 404 {
-    return responseInterface, fmt.Errorf("CP-be: consent request not found from challenge %s", requestInterface.Challenge)
+    return authorizeResponse, fmt.Errorf("CP-be: consent request not found from challenge %s", requestInterface.Challenge)
   }
 
   responseData, _ := ioutil.ReadAll(response.Body)
 
-  json.Unmarshal(responseData, &responseInterface)
+  json.Unmarshal(responseData, &authorizeResponse)
 
-  return responseInterface, nil
+  return authorizeResponse, nil
 }

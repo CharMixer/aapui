@@ -2,7 +2,6 @@ package config
 
 import (
   "os"
-  "strings"
 )
 
 type HydraConfig struct {
@@ -42,7 +41,6 @@ type OAuth2ClientConfig struct {
 var Hydra HydraConfig
 var CpBe ConsentBackendConfig
 var CpFe ConsentFrontendConfig
-var OAuth2Client OAuth2ClientConfig
 
 func InitConfigurations() {
   Hydra.Url                   = getEnvStrict("HYDRA_URL")
@@ -58,19 +56,13 @@ func InitConfigurations() {
   Hydra.PublicUserInfoUrl     = Hydra.PublicUrl + "/userinfo"
 
   CpBe.Url                              = getEnvStrict("CP_BACKEND_URL")
-  CpBe.AuthorizationsUrl                = CpBe.Url + "/v1/authorizations"
+  CpBe.AuthorizationsUrl                = CpBe.Url + "/authorizations"
   CpBe.AuthorizationsAuthorizeUrl       = CpBe.AuthorizationsUrl + "/authorize"
 
   CpFe.CsrfAuthKey                      = getEnvStrict("CP_FRONTEND_CSRF_AUTH_KEY")
   CpFe.ClientId                         = getEnvStrict("CP_FRONTEND_OAUTH2_CLIENT_ID")
   CpFe.ClientSecret                     = getEnvStrict("CP_FRONTEND_OAUTH2_CLIENT_SECRET")
   CpFe.RequiredScopes                   = []string{"openid", "cpbe.authorize"}
-
-  OAuth2Client.ClientId                 = getEnv("OAUTH2_CLIENT_CLIENT_ID")
-  OAuth2Client.ClientSecret             = getEnv("OAUTH2_CLIENT_ClIENT_SECRET")
-  OAuth2Client.Scopes                   = strings.Split(getEnv("OAUTH2_CLIENT_SCOPES"), ",")
-  OAuth2Client.RedirectURL              = getEnv("OAUTH2_CLIENT_REDIRECT_URL")
-  OAuth2Client.Endpoint                 = getEnv("OAUTH2_CLIENT_ENDPOINT")
 }
 
 func getEnv(name string) string {

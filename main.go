@@ -10,7 +10,6 @@ import (
   "net/http"
   "net/url"
   "golang-cp-fe/config"
-  "golang-cp-fe/interfaces"
   "golang-cp-fe/gateway/cpbe"
   "golang-cp-fe/gateway/cpfe"
 )
@@ -73,7 +72,7 @@ func getAuthorizeHandler(c *gin.Context) {
     return
   }
 
-  var authorizeRequest = interfaces.CPBePostAuthorizationsAuthorizeRequest{
+  var authorizeRequest = cpbe.PostAuthorizationsAuthorizeRequest{
     Challenge: consentChallenge,
   }
   authorizeResponse, err := cpbe.Authorize(config.CpBe.AuthorizationsAuthorizeUrl, cpbeClient, authorizeRequest)
@@ -88,10 +87,10 @@ func getAuthorizeHandler(c *gin.Context) {
     return
   }
 
-  cpBeAuthorizationsAuthorizeResponse, _ := cpbe.GetAuthorizationsAuthorize(consentChallenge)
+  authorizationsAuthorizeResponse, _ := cpbe.GetAuthorizationsAuthorize(consentChallenge)
 
   var consents = make(map[int]map[string]string)
-  for index, name := range cpBeAuthorizationsAuthorizeResponse.RequestedScopes {
+  for index, name := range authorizationsAuthorizeResponse.RequestedScopes {
     // index is the index where we are
     // element is the element from someSlice for where we are
     consents[index] = map[string]string{
@@ -113,17 +112,17 @@ func postAuthorizeHandler(c *gin.Context) {
 
   // comes from form post url
   challenge := c.Query("challenge")
-  cpBePostAuthorizationsAuthorizeRequest := interfaces.CPBePostAuthorizationsAuthorizeRequest{
+  authorizeRequest := cpbe.PostAuthorizationsAuthorizeRequest{
     Challenge: challenge,
     GrantScopes: form.Consents,
   }
 
-  authorizeResponse, _ := cpbe.PostAuthorizationsAuthorize(cpBePostAuthorizationsAuthorizeRequest)
+  authorizationsAuthorizeResponse, _ := cpbe.PostAuthorizationsAuthorize(authorizeRequest)
 
-  fmt.Println(authorizeResponse)
+  fmt.Println(authorizationsAuthorizeResponse)
 
-  if authorizeResponse.Authorized {
-    c.Redirect(302, authorizeResponse.RedirectTo)
+  if authorizationsAuthorizeResponse.Authorized {
+    c.Redirect(302, authorizationsAuthorizeResponse.RedirectTo)
     c.Abort()
     return
   }
