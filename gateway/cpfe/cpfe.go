@@ -1,10 +1,11 @@
 package cpfe
 
 import (
-  "golang.org/x/oauth2"
-  "golang.org/x/oauth2/clientcredentials"
   _ "errors"
   _ "fmt"
+
+  "golang.org/x/oauth2"
+  "golang.org/x/oauth2/clientcredentials"
 )
 
 func RequestAccessTokenForCpBe(provider *clientcredentials.Config) (*oauth2.Token, error) {

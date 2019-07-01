@@ -1,7 +1,6 @@
 package cpbe
 
 import (
-  "golang-cp-fe/config"
   "net/http"
   "encoding/json"
   "io/ioutil"
@@ -9,53 +8,40 @@ import (
   "bytes"
 )
 
-type GetAuthorizationsAuthorizeResponse struct {
-  RequestedScopes             []string          `json:"requested_scopes"`
-}
-
-type PostAuthorizationsAuthorizeRequest struct {
-  GrantScopes                 []string          `json:"grant_scopes" binding:"required"`
+type AuthorizeRequest struct {
   Challenge                   string            `json:"challenge" binding:"required"`
-  Session                     struct {
-    AccessToken                 string            `json:"access_token"`
-    IdToken                     string            `json:"id_token"`
-  } `json:"session" binding:"required"`
+  GrantScopes                 []string          `json:"grant_scopes,omitempty"`
 }
 
-type PostAuthorizationsAuthorizeResponse struct {
-  GrantScopes                 []string          `json:"grant_scopes" binding:"required"`
-  RequestedScopes             []string          `json:"requested_scopes" binding:"required"`
+type AuthorizeResponse struct {
+  Challenge                   string            `json:"challenge" binding:"required"`
   Authorized                  bool              `json:"authorized" binding:"required"`
+  GrantScopes                 []string          `json:"grant_scopes,omitempty"`
+  RequestedScopes             []string          `json:"requested_scopes,omitempty"`
+  RedirectTo                  string            `json:"redirect_to,omitempty`
+}
+
+type RejectRequest struct {
+  Challenge                   string            `json:"challenge" binding:"required"`
+}
+
+type RejectResponse struct {
   RedirectTo                  string            `json:"redirect_to" binding:"required"`
 }
 
-func getDefaultHeaders() map[string][]string {
-  return map[string][]string{
-    "Content-Type": []string{"application/json"},
-    "Accept": []string{"application/json"},
-  }
-}
+func Authorize(authorizeUrl string, client *http.Client, authorizeRequest AuthorizeRequest) (AuthorizeResponse, error) {
+  var authorizeResponse AuthorizeResponse
 
+  body, _ := json.Marshal(authorizeRequest)
 
-func getDefaultHeadersWithAuthentication(accessToken string) map[string][]string {
-  return map[string][]string{
-    "Content-Type": []string{"application/json"},
-    "Accept": []string{"application/json"},
-    "Authorization": []string{"Bearer " + accessToken},
-  }
-}
+  var data = bytes.NewBuffer(body)
 
-func Authorize(authorizeUrl string, client *http.Client, authorizeRequest PostAuthorizationsAuthorizeRequest) (PostAuthorizationsAuthorizeResponse, error) {
-   var authorizeResponse PostAuthorizationsAuthorizeResponse
+  request, _ := http.NewRequest("POST", authorizeUrl, data)
 
-   body, _ := json.Marshal(authorizeRequest)
+fmt.Println(request)
 
-   var data = bytes.NewBuffer(body)
-
-   request, _ := http.NewRequest("POST", authorizeUrl, data)
-
-   response, err := client.Do(request)
-   if err != nil {
+  response, err := client.Do(request)
+  if err != nil {
      return authorizeResponse, err
   }
 
@@ -68,13 +54,15 @@ func Authorize(authorizeUrl string, client *http.Client, authorizeRequest PostAu
   return authorizeResponse, nil
 }
 
-func GetAuthorizationsAuthorize(challenge string) (GetAuthorizationsAuthorizeResponse, error) {
+func Reject(authorizeUrl string, client *http.Client, authorizeRequest RejectRequest) (RejectResponse, error) {
+  var rejectResponse RejectResponse
+  return rejectResponse, nil
+}
+/*
+func GetAuthorizationsAuthorize(authorizeUrl string, client *http.Client, challenge string) (GetAuthorizationsAuthorizeResponse, error) {
   var authorizeResponse GetAuthorizationsAuthorizeResponse
 
-  client := &http.Client{}
-
-  request, _ := http.NewRequest("GET", config.CpBe.AuthorizationsAuthorizeUrl, nil)
-  request.Header = getDefaultHeaders()
+  request, _ := http.NewRequest("GET", authorizeUrl, nil)
 
   query := request.URL.Query()
   query.Add("challenge", challenge)
@@ -82,8 +70,11 @@ func GetAuthorizationsAuthorize(challenge string) (GetAuthorizationsAuthorizeRes
 
   response, _ := client.Do(request)
 
+  if response.StatusCode == 403 {
+    return authorizeResponse, fmt.Errorf("Authorization failed for request to cpbe for challenge %s", challenge)
+  }
   if response.StatusCode == 404 {
-    return authorizeResponse, fmt.Errorf("CP-be: consent request not found from challenge %s", challenge)
+    return authorizeResponse, fmt.Errorf("Consent request not found for challenge %s", challenge)
   }
 
   responseData, _ := ioutil.ReadAll(response.Body)
@@ -92,26 +83,4 @@ func GetAuthorizationsAuthorize(challenge string) (GetAuthorizationsAuthorizeRes
 
   return authorizeResponse, nil
 }
-
-func PostAuthorizationsAuthorize(requestInterface PostAuthorizationsAuthorizeRequest) (PostAuthorizationsAuthorizeResponse, error) {
-  var authorizeResponse PostAuthorizationsAuthorizeResponse
-
-  client := &http.Client{}
-
-  body, _ := json.Marshal(requestInterface)
-
-  request, _ := http.NewRequest("POST", config.CpBe.AuthorizationsAuthorizeUrl, bytes.NewBuffer(body))
-  request.Header = getDefaultHeaders()
-
-  response, _ := client.Do(request)
-
-  if response.StatusCode == 404 {
-    return authorizeResponse, fmt.Errorf("CP-be: consent request not found from challenge %s", requestInterface.Challenge)
-  }
-
-  responseData, _ := ioutil.ReadAll(response.Body)
-
-  json.Unmarshal(responseData, &authorizeResponse)
-
-  return authorizeResponse, nil
-}
+*/
