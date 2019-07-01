@@ -1,14 +1,18 @@
 package main
 
 import (
-  "github.com/gin-gonic/gin"
-  "golang.org/x/oauth2"
-  "golang.org/x/oauth2/clientcredentials"
-  "github.com/gorilla/csrf"
-  "github.com/gwatts/gin-adapter"
   "fmt"
   "net/http"
   "net/url"
+
+  "golang.org/x/oauth2"
+  "golang.org/x/oauth2/clientcredentials"
+
+  "github.com/gin-gonic/gin"
+  "github.com/gorilla/csrf"
+  "github.com/gwatts/gin-adapter"
+  "github.com/atarantini/ginrequestid"
+
   "golang-cp-fe/config"
   "golang-cp-fe/gateway/cpbe"
   "golang-cp-fe/gateway/cpfe"
@@ -16,6 +20,8 @@ import (
 
 type authorizeForm struct {
     Consents []string `form:"consents[]"`
+    Accept string `form:"accept"`
+    Cancel string `form:"cancel"`
 }
 
 var (
@@ -42,10 +48,13 @@ func main() {
     fmt.Println("Unable to aquire cpbe access token. Error: " + err.Error())
     return
   }
+  fmt.Println("Logging access token to cp-be. Do not do this in production")
   fmt.Println(cpbeToken) // FIXME Do not log this!!
   cpbeClient = cpbeClientCredentialsConfig.Client(oauth2.NoContext)
 
     r := gin.Default()
+    //r.Use(logRequest())
+    r.Use(ginrequestid.RequestId())
 
     // Use CSRF on all our forms.
     fmt.Println("Using insecure CSRF for devlopment. Do not do this in production")
@@ -63,7 +72,17 @@ func main() {
     r.Run() // defaults to :8080, uses env PORT if set
 }
 
+func logRequest() gin.HandlerFunc {
+  return func(c *gin.Context) {
+    fmt.Println("Logging all requests. Do not do this in production it will leak tokens")
+    fmt.Println(c.Request)
+    c.Next()
+  }
+}
+
 func getAuthorizeHandler(c *gin.Context) {
+  fmt.Println(fmt.Sprintf("[request-id:%s][event:getAuthorizeHandler]", c.MustGet("RequestId")))
+
   // comes from hydra redirect
   consentChallenge := c.Query("consent_challenge")
   if consentChallenge == "" {
@@ -72,7 +91,7 @@ func getAuthorizeHandler(c *gin.Context) {
     return
   }
 
-  var authorizeRequest = cpbe.PostAuthorizationsAuthorizeRequest{
+  var authorizeRequest = cpbe.AuthorizeRequest{
     Challenge: consentChallenge,
   }
   authorizeResponse, err := cpbe.Authorize(config.CpBe.AuthorizationsAuthorizeUrl, cpbeClient, authorizeRequest)
@@ -81,16 +100,15 @@ func getAuthorizeHandler(c *gin.Context) {
     c.Abort()
     return
   }
+
   if authorizeResponse.Authorized {
     c.Redirect(http.StatusFound, authorizeResponse.RedirectTo)
     c.Abort()
     return
   }
 
-  authorizationsAuthorizeResponse, _ := cpbe.GetAuthorizationsAuthorize(consentChallenge)
-
   var consents = make(map[int]map[string]string)
-  for index, name := range authorizationsAuthorizeResponse.RequestedScopes {
+  for index, name := range authorizeResponse.RequestedScopes {
     // index is the index where we are
     // element is the element from someSlice for where we are
     consents[index] = map[string]string{
@@ -98,36 +116,40 @@ func getAuthorizeHandler(c *gin.Context) {
     }
   }
 
-
   c.HTML(200, "authorize.html", gin.H{
     csrf.TemplateTag: csrf.TemplateField(c.Request),
     "requested_scopes": consents,
     "challenge": consentChallenge,
   })
+  c.Abort()
 }
 
 func postAuthorizeHandler(c *gin.Context) {
+  fmt.Println(fmt.Sprintf("[request-id:%s][event:postAuthorizeHandler]", c.MustGet("RequestId")))
   var form authorizeForm
   c.Bind(&form)
 
   // comes from form post url
   challenge := c.Query("challenge")
-  authorizeRequest := cpbe.PostAuthorizationsAuthorizeRequest{
+
+  if form.Accept != "" {
+    authorizeRequest := cpbe.AuthorizeRequest{
+      Challenge: challenge,
+      GrantScopes: form.Consents,
+    }
+    authorizationsAuthorizeResponse, _ := cpbe.Authorize(config.CpBe.AuthorizationsAuthorizeUrl, cpbeClient, authorizeRequest)
+    if  authorizationsAuthorizeResponse.Authorized {
+      c.Redirect(302, authorizationsAuthorizeResponse.RedirectTo)
+      c.Abort()
+      return
+    }
+  }
+
+  // Deny by default.
+  rejectRequest := cpbe.RejectRequest{
     Challenge: challenge,
-    GrantScopes: form.Consents,
   }
-
-  authorizationsAuthorizeResponse, _ := cpbe.PostAuthorizationsAuthorize(authorizeRequest)
-
-  fmt.Println(authorizationsAuthorizeResponse)
-
-  if authorizationsAuthorizeResponse.Authorized {
-    c.Redirect(302, authorizationsAuthorizeResponse.RedirectTo)
-    c.Abort()
-    return
-  }
-
-  c.JSON(200, gin.H{
-    "authorized": false,
-  })
+  rejectResponse, _ := cpbe.Reject(config.CpBe.AuthorizationsRejectUrl, cpbeClient, rejectRequest)
+  c.Redirect(302, rejectResponse.RedirectTo)
+  c.Abort()
 }

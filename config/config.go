@@ -21,6 +21,7 @@ type ConsentBackendConfig struct {
   Url                           string
   AuthorizationsUrl             string
   AuthorizationsAuthorizeUrl    string
+  AuthorizationsRejectUrl       string
 }
 
 type ConsentFrontendConfig struct {
@@ -58,6 +59,7 @@ func InitConfigurations() {
   CpBe.Url                              = getEnvStrict("CP_BACKEND_URL")
   CpBe.AuthorizationsUrl                = CpBe.Url + "/authorizations"
   CpBe.AuthorizationsAuthorizeUrl       = CpBe.AuthorizationsUrl + "/authorize"
+  CpBe.AuthorizationsRejectUrl       = CpBe.AuthorizationsUrl + "/reject"
 
   CpFe.CsrfAuthKey                      = getEnvStrict("CP_FRONTEND_CSRF_AUTH_KEY")
   CpFe.ClientId                         = getEnvStrict("CP_FRONTEND_OAUTH2_CLIENT_ID")
