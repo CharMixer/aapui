@@ -57,8 +57,7 @@ func main() {
     r.Use(ginrequestid.RequestId())
 
     // Use CSRF on all our forms.
-    fmt.Println("Using insecure CSRF for devlopment. Do not do this in production")
-    adapterCSRF := adapter.Wrap(csrf.Protect([]byte(config.CpFe.CsrfAuthKey), csrf.Secure(false)))
+    adapterCSRF := adapter.Wrap(csrf.Protect([]byte(config.CpFe.CsrfAuthKey), csrf.Secure(true)))
     // r.Use(adapterCSRF) // Do not use this as it will make csrf tokens for public files aswell which is just extra data going over the wire, no need for that.
 
     r.Static("/public", "public")
