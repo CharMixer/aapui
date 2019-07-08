@@ -53,7 +53,6 @@ func main() {
   cpbeClient = cpbeClientCredentialsConfig.Client(oauth2.NoContext)
 
     r := gin.Default()
-    //r.Use(logRequest())
     r.Use(ginrequestid.RequestId())
 
     // Use CSRF on all our forms.
@@ -70,14 +69,6 @@ func main() {
 
     r.RunTLS(":80", "/srv/certs/cpfe-cert.pem", "/srv/certs/cpfe-key.pem")
     //r.Run() // defaults to :8080, uses env PORT if set
-}
-
-func logRequest() gin.HandlerFunc {
-  return func(c *gin.Context) {
-    fmt.Println("Logging all requests. Do not do this in production it will leak tokens")
-    fmt.Println(c.Request)
-    c.Next()
-  }
 }
 
 func getAuthorizeHandler(c *gin.Context) {
