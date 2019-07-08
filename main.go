@@ -67,7 +67,7 @@ func main() {
     r.GET("/authorize", adapterCSRF, getAuthorizeHandler)
     r.POST("/authorize", adapterCSRF, postAuthorizeHandler)
 
-    r.RunTLS(":80", "/srv/certs/cpfe-cert.pem", "/srv/certs/cpfe-key.pem")
+    r.RunTLS(":" + config.Self.Port, "/srv/certs/cpfe-cert.pem", "/srv/certs/cpfe-key.pem")
     //r.Run() // defaults to :8080, uses env PORT if set
 }
 
