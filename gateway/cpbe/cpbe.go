@@ -6,6 +6,9 @@ import (
   "io/ioutil"
   "fmt"
   "bytes"
+
+  "golang.org/x/net/context"
+  "golang.org/x/oauth2/clientcredentials"
 )
 
 type AuthorizeRequest struct {
@@ -29,7 +32,17 @@ type RejectResponse struct {
   RedirectTo                  string            `json:"redirect_to" binding:"required"`
 }
 
-func Authorize(authorizeUrl string, client *http.Client, authorizeRequest AuthorizeRequest) (AuthorizeResponse, error) {
+type CpBeClient struct {
+  *http.Client
+}
+
+func NewCpBeClient(config *clientcredentials.Config) *CpBeClient {
+  ctx := context.Background()
+  client := config.Client(ctx)
+  return &CpBeClient{client}
+}
+
+func Authorize(authorizeUrl string, client *CpBeClient, authorizeRequest AuthorizeRequest) (AuthorizeResponse, error) {
   var authorizeResponse AuthorizeResponse
 
   body, _ := json.Marshal(authorizeRequest)
@@ -54,33 +67,7 @@ fmt.Println(request)
   return authorizeResponse, nil
 }
 
-func Reject(authorizeUrl string, client *http.Client, authorizeRequest RejectRequest) (RejectResponse, error) {
+func Reject(authorizeUrl string, client *CpBeClient, authorizeRequest RejectRequest) (RejectResponse, error) {
   var rejectResponse RejectResponse
   return rejectResponse, nil
 }
-/*
-func GetAuthorizationsAuthorize(authorizeUrl string, client *http.Client, challenge string) (GetAuthorizationsAuthorizeResponse, error) {
-  var authorizeResponse GetAuthorizationsAuthorizeResponse
-
-  request, _ := http.NewRequest("GET", authorizeUrl, nil)
-
-  query := request.URL.Query()
-  query.Add("challenge", challenge)
-  request.URL.RawQuery = query.Encode()
-
-  response, _ := client.Do(request)
-
-  if response.StatusCode == 403 {
-    return authorizeResponse, fmt.Errorf("Authorization failed for request to cpbe for challenge %s", challenge)
-  }
-  if response.StatusCode == 404 {
-    return authorizeResponse, fmt.Errorf("Consent request not found for challenge %s", challenge)
-  }
-
-  responseData, _ := ioutil.ReadAll(response.Body)
-
-  json.Unmarshal(responseData, &authorizeResponse)
-
-  return authorizeResponse, nil
-}
-*/
