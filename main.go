@@ -74,6 +74,7 @@ func main() {
   ep := r.Group("/")
   ep.Use(adapterCSRF)
   {
+    // FIXME: Should these endpoints be protected? aka requiring authentication before access?
     ep.GET(routes["/"].URL, controllers.ShowAuthorization(env, routes["/"]))
 
     ep.GET(routes["/authorize"].URL, controllers.ShowAuthorization(env, routes["/authorize"]))
