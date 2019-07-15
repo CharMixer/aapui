@@ -8,7 +8,9 @@ import (
 )
 
 const (
-  RequestIdKey string = "RequestId"  
+  RequestIdKey string = "RequestId"
+  AccessTokenKey = "access_token"
+  IdTokenKey = "id_token"
 )
 
 type State struct {
