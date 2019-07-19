@@ -1,7 +1,7 @@
 package controllers
 
 import (
-  //"fmt"
+  "fmt"
   "strings"
   "net/http"
 
@@ -27,7 +27,7 @@ func ShowAuthorization(env *environment.State, route environment.Route) gin.Hand
     // comes from hydra redirect
     consentChallenge := c.Query("consent_challenge")
     if consentChallenge == "" {
-      c.JSON(http.StatusNotFound, gin.H{"error": "Missing consent challenge"})
+      c.HTML(http.StatusNotFound, "authorize.html", gin.H{"error": "Missing consent challenge"})
       c.Abort()
       return
     }
@@ -39,24 +39,29 @@ func ShowAuthorization(env *environment.State, route environment.Route) gin.Hand
     }
     authorizeResponse, err := cpbe.Authorize(config.CpBe.AuthorizationsAuthorizeUrl, cpbeClient, authorizeRequest)
     if err != nil {
-      c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+      c.HTML(http.StatusInternalServerError, "authorize.html", gin.H{
+        "error": err.Error(),
+      })
       c.Abort()
       return
     }
 
     if authorizeResponse.Authorized {
+      environment.DebugLog(route.LogId, "ShowAuthorization", "Redirecting to " + authorizeResponse.RedirectTo, requestId)
       c.Redirect(http.StatusFound, authorizeResponse.RedirectTo)
       c.Abort()
       return
     }
 
-    // NOTE: Requested more scopes of user than was previously granted to the app.
+    // NOTE: App requested more scopes of user than was previously granted to the app.
     var requestedScopes []string = authorizeResponse.RequestedScopes
 
-    // Look for already granted consents for the id (sub) and app (client_id)
+    // Look for already granted consents for the id (sub) and app (client_id), so we can create the diffenence set and only present user with what is missing.
     consentRequest := cpbe.ConsentRequest{
-      Subject: "wraix", // FIXME: find this from access token
-      App: "Idp", // FIXME: Formalize this
+      Subject: authorizeResponse.Subject,
+      App: "idpui", // FIXME: Formalize this. Remeber an app could have more than one identity (client_id) if we wanted to segment access within the app
+      ClientId: "idpui", //authorizeResponse.ClientId, // "idpui"
+      RequestedScopes: requestedScopes, // Only look for permissions that was requested (query optimization)
     }
     grantedScopes, err := cpbe.FetchConsents(config.CpBe.AuthorizationsUrl, cpbeClient, consentRequest)
     if err != nil {
@@ -65,10 +70,15 @@ func ShowAuthorization(env *environment.State, route environment.Route) gin.Hand
         "error": err.Error(),
       })
     }
+    environment.DebugLog(route.LogId, "ShowAuthorization", "Granted scopes " + strings.Join(grantedScopes, ",") + " for app: idpui and subject: " + authorizeResponse.Subject, requestId)
 
-    d := Difference(requestedScopes, grantedScopes)
-    if len(d) <= 0 {
+    diffScopes := Difference(requestedScopes, grantedScopes)
+
+    // FIXME: Create identity property which decides if auto consent should be triggered.
+    /*
+    if len(diffScopes) <= 0 {
       // Nothing to accept everything already accepted.
+
       environment.DebugLog(route.LogId, "ShowAuthorization", "Auto granted scopes: " + strings.Join(requestedScopes, ","), requestId)
       authorizeRequest := cpbe.AuthorizeRequest{
         Challenge: consentChallenge,
@@ -85,20 +95,29 @@ func ShowAuthorization(env *environment.State, route environment.Route) gin.Hand
         return
       }
     }
+    */
 
     var requestedConsents = make(map[int]map[string]string)
-    for index, name := range d {
-      // index is the index where we are
-      // element is the element from someSlice for where we are
+    for index, name := range diffScopes {
       requestedConsents[index] = map[string]string{
+        "name": name,
+      }
+    }
+
+    var grantedConsents = make(map[int]map[string]string)
+    for index, name := range grantedScopes {
+      grantedConsents[index] = map[string]string{
         "name": name,
       }
     }
 
     c.HTML(200, "authorize.html", gin.H{
       csrf.TemplateTag: csrf.TemplateField(c.Request),
+      "name": authorizeResponse.Subject,
+      "client_id": authorizeResponse.ClientId,
       "requested_scopes": requestedConsents,
-      "challenge": consentChallenge,
+      "granted_scopes": grantedConsents,
+      "consent_challenge": consentChallenge,
     })
   }
   return gin.HandlerFunc(fn)
@@ -128,18 +147,54 @@ func SubmitAuthorization(env *environment.State, route environment.Route) gin.Ha
     var form authorizeForm
     c.Bind(&form)
 
-    // comes from form post url
-    challenge := c.Query("challenge")
+    consentChallenge := c.Query("consent_challenge")
 
     cpbeClient := cpbe.NewCpBeClient(env.CpBeConfig)
 
     if form.Accept != "" {
 
-      // FIXME: Update db model before asking hydra to accept consents. This way if db model update fails we can retry.
+      consents := form.Consents
 
-      authorizeRequest := cpbe.AuthorizeRequest{
-        Challenge: challenge,
-        GrantScopes: form.Consents,
+      // To prevent tampering we ask for the authorzation data again to get client_id, subject etc.
+      var authorizeRequest = cpbe.AuthorizeRequest{
+        Challenge: consentChallenge,
+        // NOTE: Do not add GrantScopes here as it will grant them instead of reading data from the challenge.
+      }
+      authorizeResponse, err := cpbe.Authorize(config.CpBe.AuthorizationsAuthorizeUrl, cpbeClient, authorizeRequest)
+      if err != nil {
+        fmt.Println(err)
+        c.HTML(http.StatusInternalServerError, "authorize.html", gin.H{
+          "error": err.Error(),
+        })
+        c.Abort()
+        return
+      }
+
+      revokedConsents := Difference(authorizeResponse.RequestedScopes, consents)
+
+      // Grant the accepted scopes to the client in Aap
+      consentRequest := cpbe.ConsentRequest{
+        Subject: authorizeResponse.Subject,
+        App: "idpui", // FIXME: Formalize this. Remeber an app could have more than one identity (client_id) if we wanted to segment access within the app
+        ClientId: "idpui", //authorizeResponse.ClientId, // "idpui"
+        GrantedScopes: consents,
+        RevokedScopes: revokedConsents,
+        RequestedScopes: authorizeResponse.RequestedScopes, // Send what was requested just in case we need it.
+      }
+      consentResponse, err := cpbe.CreateConsents(config.CpBe.AuthorizationsUrl, cpbeClient, consentRequest)
+      if err != nil {
+        fmt.Println(err)
+        // FIXME: Signal errors to the authorization controller using session flash messages.
+        c.Redirect(302, "/authorize?consent_challenge=" + consentChallenge)
+        c.Abort()
+        return
+      }
+      fmt.Println(consentResponse)
+
+      // Grant the accepted scopes to the client in Hydra
+      authorizeRequest = cpbe.AuthorizeRequest{
+        Challenge: consentChallenge,
+        GrantScopes: consents,
       }
       authorizationsAuthorizeResponse, _ := cpbe.Authorize(config.CpBe.AuthorizationsAuthorizeUrl, cpbeClient, authorizeRequest)
       if  authorizationsAuthorizeResponse.Authorized {
@@ -151,7 +206,7 @@ func SubmitAuthorization(env *environment.State, route environment.Route) gin.Ha
 
     // Deny by default.
     rejectRequest := cpbe.RejectRequest{
-      Challenge: challenge,
+      Challenge: consentChallenge,
     }
     rejectResponse, _ := cpbe.Reject(config.CpBe.AuthorizationsRejectUrl, cpbeClient, rejectRequest)
     c.Redirect(302, rejectResponse.RedirectTo)
