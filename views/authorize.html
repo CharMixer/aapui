@@ -17,13 +17,29 @@
     <img src="/public/images/fingerprint.svg" alt="Fingerprint" id="fingerprint" />
     <h1>Consent Provider</h1>
 
-    <form action="/authorize?challenge={{ .challenge }}" method="post">
+    <div style="clear:both;"></div>
+    <p>Dear {{ .name }}</p>
+    <p>The application {{ .client_id }} is requesting access to resources of yours. Please grant or deny them as you see fit.</p>
+
+    <div class="error">{{ .error }}</div>
+
+    <form action="/authorize?consent_challenge={{ .consent_challenge }}" method="post">
       {{ .csrfField }}
 
-      {{ range $key, $scope := .requested_scopes }}
-        <input type="checkbox" id="consent_{{ $key }}" name="consents[]" value="{{ $scope.name }}">
-        <label for="consent_{{ $key }}">{{ $scope.name }}</label>
+      {{if .requested_scopes }}
+        {{ range $key, $scope := .requested_scopes }}
+          <input type="checkbox" id="consent_requested_{{ $key }}" name="consents[]" value="{{ $scope.name }}">
+          <label for="consent_requested_{{ $key }}">{{ $scope.name }}</label>
+        {{ end }}
       {{ end }}
+
+      {{if .granted_scopes }}
+        <p>You have previously granted</p>
+        {{ range $key, $scope := .granted_scopes }}
+          <input type="checkbox" id="consent_granted_{{ $key }}" name="consents[]" value="{{ $scope.name }}" checked="checked">
+          <label for="consent_granted_{{ $key }}">{{ $scope.name }}</label>
+        {{ end }}
+      {{end}}
 
       <input type="submit" name="accept" value="Accept" />
       <input type="submit" name="cancel" value="Cancel" />
