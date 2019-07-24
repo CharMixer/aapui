@@ -1,0 +1,13 @@
+port: 443
+
+csrf:
+  authKey: youreallyneedtochangethis
+
+oauth2:
+  client:
+    id: aapui
+    secret: youreallyneedtochangethis
+  scopes:
+    required:
+      - openid
+      - cpbe.authorize

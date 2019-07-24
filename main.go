@@ -26,7 +26,7 @@ func init() {
 
 func main() {
 
-  provider, err := oidc.NewProvider(context.Background(), config.Hydra.Url + "/")
+  provider, err := oidc.NewProvider(context.Background(), config.Discovery.Hydra.Public.Url + "/")
   if err != nil {
     fmt.Println(err)
     return
@@ -34,10 +34,10 @@ func main() {
 
   // CpFe needs to be able as an App using client_id to access CpBe endpoints. Using client credentials flow
   cpbeConfig := &clientcredentials.Config{
-    ClientID:  config.CpFe.ClientId,
-    ClientSecret: config.CpFe.ClientSecret,
+    ClientID:  config.Self.ClientId,
+    ClientSecret: config.Self.ClientSecret,
     TokenURL: provider.Endpoint().TokenURL,
-    Scopes: config.CpFe.RequiredScopes,
+    Scopes: config.Self.RequiredScopes,
     EndpointParams: url.Values{"audience": {"cpbe"}},
     AuthStyle: 2, // https://godoc.org/golang.org/x/oauth2#AuthStyle
   }
@@ -64,7 +64,7 @@ func main() {
   r.Use(ginrequestid.RequestId())
 
   // Use CSRF on all our forms.
-  adapterCSRF := adapter.Wrap(csrf.Protect([]byte(config.CpFe.CsrfAuthKey), csrf.Secure(true)))
+  adapterCSRF := adapter.Wrap(csrf.Protect([]byte(config.Self.CsrfAuthKey), csrf.Secure(true)))
   // r.Use(adapterCSRF) // Do not use this as it will make csrf tokens for public files aswell which is just extra data going over the wire, no need for that.
 
   r.Static("/public", "public")

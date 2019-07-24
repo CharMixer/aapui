@@ -37,7 +37,7 @@ func ShowAuthorization(env *environment.State, route environment.Route) gin.Hand
     var authorizeRequest = cpbe.AuthorizeRequest{
       Challenge: consentChallenge,
     }
-    authorizeResponse, err := cpbe.Authorize(config.CpBe.AuthorizationsAuthorizeUrl, cpbeClient, authorizeRequest)
+    authorizeResponse, err := cpbe.Authorize(config.Discovery.AapApi.Public.Url + config.Discovery.AapApi.Public.Endpoints.AuthorizationsAuthorize, cpbeClient, authorizeRequest)
     if err != nil {
       c.HTML(http.StatusInternalServerError, "authorize.html", gin.H{
         "error": err.Error(),
@@ -63,7 +63,7 @@ func ShowAuthorization(env *environment.State, route environment.Route) gin.Hand
       ClientId: "idpui", //authorizeResponse.ClientId, // "idpui"
       RequestedScopes: requestedScopes, // Only look for permissions that was requested (query optimization)
     }
-    grantedScopes, err := cpbe.FetchConsents(config.CpBe.AuthorizationsUrl, cpbeClient, consentRequest)
+    grantedScopes, err := cpbe.FetchConsents(config.Discovery.AapApi.Public.Url + config.Discovery.AapApi.Public.Endpoints.Authorizations, cpbeClient, consentRequest)
     if err != nil {
       environment.DebugLog(route.LogId, "ShowAuthorization", "Error: " + err.Error(), requestId)
       c.HTML(http.StatusInternalServerError, "authorize.html", gin.H{
@@ -84,7 +84,7 @@ func ShowAuthorization(env *environment.State, route environment.Route) gin.Hand
         Challenge: consentChallenge,
         GrantScopes: requestedScopes,
       }
-      authorizationsAuthorizeResponse, _ := cpbe.Authorize(config.CpBe.AuthorizationsAuthorizeUrl, cpbeClient, authorizeRequest)
+      authorizationsAuthorizeResponse, _ := cpbe.Authorize(config.Discovery.AapApi.Public.Url + config.Discovery.AapApi.Public.Endpoints.AuthorizationsAuthorize, cpbeClient, authorizeRequest)
       if  authorizationsAuthorizeResponse.Authorized {
         c.Redirect(302, authorizationsAuthorizeResponse.RedirectTo)
         c.Abort()
@@ -160,7 +160,7 @@ func SubmitAuthorization(env *environment.State, route environment.Route) gin.Ha
         Challenge: consentChallenge,
         // NOTE: Do not add GrantScopes here as it will grant them instead of reading data from the challenge.
       }
-      authorizeResponse, err := cpbe.Authorize(config.CpBe.AuthorizationsAuthorizeUrl, cpbeClient, authorizeRequest)
+      authorizeResponse, err := cpbe.Authorize(config.Discovery.AapApi.Public.Url + config.Discovery.AapApi.Public.Endpoints.AuthorizationsAuthorize, cpbeClient, authorizeRequest)
       if err != nil {
         fmt.Println(err)
         c.HTML(http.StatusInternalServerError, "authorize.html", gin.H{
@@ -181,7 +181,7 @@ func SubmitAuthorization(env *environment.State, route environment.Route) gin.Ha
         RevokedScopes: revokedConsents,
         RequestedScopes: authorizeResponse.RequestedScopes, // Send what was requested just in case we need it.
       }
-      consentResponse, err := cpbe.CreateConsents(config.CpBe.AuthorizationsUrl, cpbeClient, consentRequest)
+      consentResponse, err := cpbe.CreateConsents(config.Discovery.AapApi.Public.Url + config.Discovery.AapApi.Public.Endpoints.Authorizations, cpbeClient, consentRequest)
       if err != nil {
         fmt.Println(err)
         // FIXME: Signal errors to the authorization controller using session flash messages.
@@ -196,7 +196,7 @@ func SubmitAuthorization(env *environment.State, route environment.Route) gin.Ha
         Challenge: consentChallenge,
         GrantScopes: consents,
       }
-      authorizationsAuthorizeResponse, _ := cpbe.Authorize(config.CpBe.AuthorizationsAuthorizeUrl, cpbeClient, authorizeRequest)
+      authorizationsAuthorizeResponse, _ := cpbe.Authorize(config.Discovery.AapApi.Public.Url + config.Discovery.AapApi.Public.Endpoints.AuthorizationsAuthorize, cpbeClient, authorizeRequest)
       if  authorizationsAuthorizeResponse.Authorized {
         c.Redirect(302, authorizationsAuthorizeResponse.RedirectTo)
         c.Abort()
@@ -208,7 +208,7 @@ func SubmitAuthorization(env *environment.State, route environment.Route) gin.Ha
     rejectRequest := cpbe.RejectRequest{
       Challenge: consentChallenge,
     }
-    rejectResponse, _ := cpbe.Reject(config.CpBe.AuthorizationsRejectUrl, cpbeClient, rejectRequest)
+    rejectResponse, _ := cpbe.Reject(config.Discovery.AapApi.Public.Url + config.Discovery.AapApi.Public.Endpoints.AuthorizationsReject, cpbeClient, rejectRequest)
     c.Redirect(302, rejectResponse.RedirectTo)
     c.Abort()
   }
