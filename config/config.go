@@ -2,11 +2,20 @@ package config
 
 import (
   "os"
+  "github.com/spf13/viper"
+  "fmt"
+  "strings"
 )
 
 type SelfConfig struct {
-  Port          string
+  Url             string
+  Port            string
+  CsrfAuthKey     string
+  ClientId        string
+  ClientSecret    string
+  RequiredScopes  []string
 }
+
 
 type HydraConfig struct {
   Url             string
@@ -14,11 +23,7 @@ type HydraConfig struct {
   AuthenticateUrl string
   TokenUrl        string
   UserInfoUrl     string
-  PublicUrl             string
-  PublicAuthenticateUrl string
-  PublicTokenUrl        string
-  PublicLogoutUrl       string
-  PublicUserInfoUrl     string
+  LogoutUrl       string
 }
 
 type ConsentBackendConfig struct {
@@ -26,13 +31,6 @@ type ConsentBackendConfig struct {
   AuthorizationsUrl             string
   AuthorizationsAuthorizeUrl    string
   AuthorizationsRejectUrl       string
-}
-
-type ConsentFrontendConfig struct {
-  CsrfAuthKey string
-  ClientId                      string
-  ClientSecret                  string
-  RequiredScopes                []string
 }
 
 type OAuth2ClientConfig struct {
@@ -43,39 +41,134 @@ type OAuth2ClientConfig struct {
   Endpoint        string
 }
 
+type DiscoveryConfig struct {
+  IdpUi struct {
+    Public struct {
+      Url  string
+      Port int
+      Endpoints struct {
+      }
+    }
+  }
+  IdpApi struct {
+    Public struct {
+      Url  string
+      Port int
+      Endpoints struct {
+      }
+    }
+  }
+  AapUi struct {
+    Public struct {
+      Url  string
+      Port int
+      Endpoints struct {
+      }
+    }
+  }
+  AapApi struct {
+    Public struct {
+      Url  string
+      Port int
+      Endpoints struct {
+        Authorizations string
+        AuthorizationsAuthorize string
+        AuthorizationsReject string
+      }
+    }
+  }
+  Hydra struct {
+    Public struct {
+      Url  string
+      Port int
+      Endpoints struct {
+        HealthAlive string
+        HealthReady string
+      }
+    }
+    Private struct {
+      Url  string
+      Port int
+    }
+  }
+}
+
+type AppConfig struct {
+
+}
+
+var Discovery DiscoveryConfig
+var App AppConfig
+
+
+
 var Hydra HydraConfig
 var CpBe ConsentBackendConfig
-var CpFe ConsentFrontendConfig
 var Self SelfConfig
 
+func setDefaults() {
+  viper.SetDefault("config.discovery.path", "./discovery.yml")
+  viper.SetDefault("config.app.path", "./app.yml")
+}
+
 func InitConfigurations() {
-  Self.Port                   = getEnvStrict("PORT")
+  var err error
 
-  Hydra.Url                   = getEnvStrict("HYDRA_URL")
-  Hydra.AdminUrl              = getEnvStrict("HYDRA_ADMIN_URL")
-  Hydra.AuthenticateUrl       = Hydra.Url + "/oauth2/auth"
-  Hydra.TokenUrl              = Hydra.Url + "/oauth2/token"
-  Hydra.UserInfoUrl           = Hydra.Url + "/userinfo"
+  // lets environment variable override config file
+  viper.AutomaticEnv()
+  viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
-  Hydra.PublicUrl             = getEnvStrict("HYDRA_PUBLIC_URL")
-  Hydra.PublicLogoutUrl       = Hydra.PublicUrl + "/oauth2/sessions/logout"
-  Hydra.PublicAuthenticateUrl = Hydra.PublicUrl + "/oauth2/auth"
-  Hydra.PublicTokenUrl        = Hydra.PublicUrl + "/oauth2/token"
-  Hydra.PublicUserInfoUrl     = Hydra.PublicUrl + "/userinfo"
+  setDefaults()
 
-  CpBe.Url                              = getEnvStrict("CP_BACKEND_URL")
-  CpBe.AuthorizationsUrl                = CpBe.Url + "/authorizations"
-  CpBe.AuthorizationsAuthorizeUrl       = CpBe.AuthorizationsUrl + "/authorize"
-  CpBe.AuthorizationsRejectUrl       = CpBe.AuthorizationsUrl + "/reject"
+  // Load discovery configurations
 
-  CpFe.CsrfAuthKey                      = getEnvStrict("CP_FRONTEND_CSRF_AUTH_KEY")
-  CpFe.ClientId                         = getEnvStrict("CP_FRONTEND_OAUTH2_CLIENT_ID")
-  CpFe.ClientSecret                     = getEnvStrict("CP_FRONTEND_OAUTH2_CLIENT_SECRET")
-  CpFe.RequiredScopes                   = []string{"openid", "cpbe.authorize"}
+  viper.SetConfigFile(viper.GetString("config.discovery.path"))
+  err = viper.ReadInConfig() // Find and read the config file
+  if err != nil { // Handle errors reading the config file
+    panic(fmt.Errorf("Fatal error config file: %s \n", err))
+  }
+
+  err = viper.Unmarshal(&Discovery)
+  if err != nil {
+    fmt.Printf("unable to decode into config struct, %v", err)
+  }
+
+  fmt.Println(Discovery.Hydra.Public.Url + Discovery.Hydra.Public.Endpoints.HealthReady);
+
+  // Load app specific configurations
+
+  viper.SetConfigFile(viper.GetString("config.app.path"))
+  err = viper.ReadInConfig() // Find and read the config file
+  if err != nil { // Handle errors reading the config file
+    panic(fmt.Errorf("Fatal error config file: %s \n", err))
+  }
+
+  err = viper.Unmarshal(&App)
+  if err != nil {
+    fmt.Printf("unable to decode into config struct, %v", err)
+  }
+
+  Self.Url                    = viper.GetString("aap.ui.public.url")
+  Self.Port                   = viper.GetString("aap.ui.public.port")
+  Self.CsrfAuthKey            = viper.GetString("aap.ui.csrf.auth.key")
+  Self.ClientId               = viper.GetString("aap.ui.oauth2.client.id")
+  Self.ClientSecret           = viper.GetString("aap.ui.oauth2.client.secret")
+  Self.RequiredScopes         = []string{"openid", "cpbe.authorize"}
+
 }
 
 func getEnv(name string) string {
   return os.Getenv(name)
+}
+
+func getEnvOrDefault(name string, def string) string {
+  r := getEnv(name)
+
+  if r == "" {
+    r = def
+  }
+
+  return r
 }
 
 func getEnvStrict(name string) string {
