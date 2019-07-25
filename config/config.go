@@ -1,51 +1,16 @@
 package config
 
 import (
-  "os"
   "github.com/spf13/viper"
   "fmt"
   "strings"
 )
 
-type SelfConfig struct {
-  Url             string
-  Port            string
-  CsrfAuthKey     string
-  ClientId        string
-  ClientSecret    string
-  RequiredScopes  []string
-}
-
-
-type HydraConfig struct {
-  Url             string
-  AdminUrl        string
-  AuthenticateUrl string
-  TokenUrl        string
-  UserInfoUrl     string
-  LogoutUrl       string
-}
-
-type ConsentBackendConfig struct {
-  Url                           string
-  AuthorizationsUrl             string
-  AuthorizationsAuthorizeUrl    string
-  AuthorizationsRejectUrl       string
-}
-
-type OAuth2ClientConfig struct {
-  ClientId        string
-  ClientSecret    string
-  Scopes          []string
-  RedirectURL     string
-  Endpoint        string
-}
-
 type DiscoveryConfig struct {
   IdpUi struct {
     Public struct {
       Url  string
-      Port int
+      Port string
       Endpoints struct {
       }
     }
@@ -53,7 +18,7 @@ type DiscoveryConfig struct {
   IdpApi struct {
     Public struct {
       Url  string
-      Port int
+      Port string
       Endpoints struct {
       }
     }
@@ -61,7 +26,7 @@ type DiscoveryConfig struct {
   AapUi struct {
     Public struct {
       Url  string
-      Port int
+      Port string
       Endpoints struct {
       }
     }
@@ -69,7 +34,7 @@ type DiscoveryConfig struct {
   AapApi struct {
     Public struct {
       Url  string
-      Port int
+      Port string
       Endpoints struct {
         Authorizations string
         AuthorizationsAuthorize string
@@ -80,7 +45,7 @@ type DiscoveryConfig struct {
   Hydra struct {
     Public struct {
       Url  string
-      Port int
+      Port string
       Endpoints struct {
         HealthAlive string
         HealthReady string
@@ -88,23 +53,41 @@ type DiscoveryConfig struct {
     }
     Private struct {
       Url  string
-      Port int
+      Port string
     }
   }
 }
 
 type AppConfig struct {
-
+  Serve struct {
+    Public struct {
+      Port string
+    }
+    Tls struct {
+      Key struct {
+        Path string
+      }
+      Cert struct {
+        Path string
+      }
+    }
+  }
+  Csrf struct {
+    AuthKey string
+  }
+  Oauth2 struct {
+    Client struct {
+      Id string
+      Secret string
+    }
+    Scopes struct {
+      Required []string
+    }
+  }
 }
 
 var Discovery DiscoveryConfig
 var App AppConfig
-
-
-
-var Hydra HydraConfig
-var CpBe ConsentBackendConfig
-var Self SelfConfig
 
 func setDefaults() {
   viper.SetDefault("config.discovery.path", "./discovery.yml")
@@ -133,8 +116,6 @@ func InitConfigurations() {
     fmt.Printf("unable to decode into config struct, %v", err)
   }
 
-  fmt.Println(Discovery.Hydra.Public.Url + Discovery.Hydra.Public.Endpoints.HealthReady);
-
   // Load app specific configurations
 
   viper.SetConfigFile(viper.GetString("config.app.path"))
@@ -147,36 +128,4 @@ func InitConfigurations() {
   if err != nil {
     fmt.Printf("unable to decode into config struct, %v", err)
   }
-
-  Self.Url                    = viper.GetString("aap.ui.public.url")
-  Self.Port                   = viper.GetString("aap.ui.public.port")
-  Self.CsrfAuthKey            = viper.GetString("aap.ui.csrf.auth.key")
-  Self.ClientId               = viper.GetString("aap.ui.oauth2.client.id")
-  Self.ClientSecret           = viper.GetString("aap.ui.oauth2.client.secret")
-  Self.RequiredScopes         = []string{"openid", "cpbe.authorize"}
-
-}
-
-func getEnv(name string) string {
-  return os.Getenv(name)
-}
-
-func getEnvOrDefault(name string, def string) string {
-  r := getEnv(name)
-
-  if r == "" {
-    r = def
-  }
-
-  return r
-}
-
-func getEnvStrict(name string) string {
-  r := getEnv(name)
-
-  if r == "" {
-    panic("Missing environment variable: " + name)
-  }
-
-  return r
 }

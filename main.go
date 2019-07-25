@@ -34,10 +34,10 @@ func main() {
 
   // CpFe needs to be able as an App using client_id to access CpBe endpoints. Using client credentials flow
   cpbeConfig := &clientcredentials.Config{
-    ClientID:  config.Self.ClientId,
-    ClientSecret: config.Self.ClientSecret,
+    ClientID:  config.App.Oauth2.Client.Id,
+    ClientSecret: config.App.Oauth2.Client.Secret,
     TokenURL: provider.Endpoint().TokenURL,
-    Scopes: config.Self.RequiredScopes,
+    Scopes: config.App.Oauth2.Scopes.Required,
     EndpointParams: url.Values{"audience": {"cpbe"}},
     AuthStyle: 2, // https://godoc.org/golang.org/x/oauth2#AuthStyle
   }
@@ -64,7 +64,7 @@ func main() {
   r.Use(ginrequestid.RequestId())
 
   // Use CSRF on all our forms.
-  adapterCSRF := adapter.Wrap(csrf.Protect([]byte(config.Self.CsrfAuthKey), csrf.Secure(true)))
+  adapterCSRF := adapter.Wrap(csrf.Protect([]byte(config.App.Csrf.AuthKey), csrf.Secure(true)))
   // r.Use(adapterCSRF) // Do not use this as it will make csrf tokens for public files aswell which is just extra data going over the wire, no need for that.
 
   r.Static("/public", "public")
@@ -81,5 +81,5 @@ func main() {
     ep.POST(routes["/authorize"].URL, controllers.SubmitAuthorization(env, routes["/authorize"]))
   }
 
-  r.RunTLS(":" + config.Self.Port, "/srv/certs/cpfe-cert.pem", "/srv/certs/cpfe-key.pem")
+  r.RunTLS(":" + config.App.Serve.Public.Port, config.App.Serve.Tls.Cert.Path, config.App.Serve.Tls.Key.Path)
 }
