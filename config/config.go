@@ -20,6 +20,9 @@ type DiscoveryConfig struct {
       Url  string
       Port string
       Endpoints struct {
+        Authenticate string
+        Identities string
+        Logout string
       }
     }
   }
@@ -47,13 +50,28 @@ type DiscoveryConfig struct {
       Url  string
       Port string
       Endpoints struct {
+        Oauth2Token string
+        Oauth2Auth string
+        Userinfo string
         HealthAlive string
         HealthReady string
+        Logout string
       }
     }
     Private struct {
       Url  string
       Port string
+      Endpoints struct {
+        Consent string
+        ConsentAccept string
+        ConsentReject string
+        Login string
+        LoginAccept string
+        LoginReject string
+        Logout string
+        LogoutAccept string
+        LogoutReject string
+      }
     }
   }
 }
