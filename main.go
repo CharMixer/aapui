@@ -103,5 +103,5 @@ func serve(env *environment.State) {
     ep.POST(routes["/authorize"].URL, controllers.SubmitAuthorization(env, routes["/authorize"]))
   }
 
-  r.RunTLS(":" + config.GetString("serve.public.port"), config.GetString("serve.tls.cert.path"), config.GetString("serve.tls.key.path"))
+  r.RunTLS(":" + config.App.Serve.Public.Port, config.App.Serve.Tls.Cert.Path, config.App.Serve.Tls.Key.Path)
 }
