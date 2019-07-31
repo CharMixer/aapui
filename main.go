@@ -3,6 +3,7 @@ package main
 import (
   "fmt"
   "net/url"
+  "os"
 
   "golang.org/x/net/context"
   //"golang.org/x/oauth2"
@@ -18,6 +19,8 @@ import (
   "golang-cp-fe/config"
   "golang-cp-fe/environment"
   "golang-cp-fe/controllers"
+
+  "github.com/pborman/getopt"
 )
 
 func init() {
@@ -48,6 +51,25 @@ func main() {
     CpBeConfig: cpbeConfig,
   }
 
+  optServe := getopt.BoolLong("serve", 0, "Serve application")
+  optHelp := getopt.BoolLong("help", 0, "Help")
+  getopt.Parse()
+
+  if *optHelp {
+    getopt.Usage()
+    os.Exit(0)
+  }
+
+  if *optServe {
+    serve(env)
+  } else {
+    getopt.Usage()
+    os.Exit(0)
+  }
+
+}
+
+func serve(env *environment.State) {
   // Setup routes to use, this defines log for debug log
   routes := map[string]environment.Route{
     "/": environment.Route{
@@ -81,5 +103,5 @@ func main() {
     ep.POST(routes["/authorize"].URL, controllers.SubmitAuthorization(env, routes["/authorize"]))
   }
 
-  r.RunTLS(":" + config.App.Serve.Public.Port, config.App.Serve.Tls.Cert.Path, config.App.Serve.Tls.Key.Path)
+  r.RunTLS(":" + config.GetString("serve.public.port"), config.GetString("serve.tls.cert.path"), config.GetString("serve.tls.key.path"))
 }
