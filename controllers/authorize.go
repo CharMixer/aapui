@@ -11,7 +11,7 @@ import (
 
   "golang-cp-fe/config"
   "golang-cp-fe/environment"
-  "golang-cp-fe/gateway/cpbe"
+  "golang-cp-fe/gateway/aapapi"
 )
 
 type authorizeForm struct {
@@ -39,12 +39,12 @@ func ShowAuthorization(env *environment.State, route environment.Route) gin.Hand
       return
     }
 
-    cpbeClient := cpbe.NewCpBeClient(env.CpBeConfig)
+    aapapiClient := aapapi.NewAapApiClient(env.AapApiConfig)
 
-    var authorizeRequest = cpbe.AuthorizeRequest{
+    var authorizeRequest = aapapi.AuthorizeRequest{
       Challenge: consentChallenge,
     }
-    authorizeResponse, err := cpbe.Authorize(config.GetString("aapApi.public.url") + config.GetString("aapApi.public.endpoints.authorizationsAuthorize"), cpbeClient, authorizeRequest)
+    authorizeResponse, err := aapapi.Authorize(config.GetString("aapApi.public.url") + config.GetString("aapApi.public.endpoints.authorizationsAuthorize"), aapapiClient, authorizeRequest)
     if err != nil {
       c.HTML(http.StatusInternalServerError, "authorize.html", gin.H{
         "error": err.Error(),
@@ -66,13 +66,13 @@ func ShowAuthorization(env *environment.State, route environment.Route) gin.Hand
     log.Debug("Please remove App is no longer needed")
 
     // Look for already granted consents for the id (sub) and app (client_id), so we can create the diffenence set and only present user with what is missing.
-    consentRequest := cpbe.ConsentRequest{
+    consentRequest := aapapi.ConsentRequest{
       Subject: authorizeResponse.Subject,
       App: authorizeResponse.ClientId,
       ClientId: authorizeResponse.ClientId,
       RequestedScopes: requestedScopes, // Only look for permissions that was requested (query optimization)
     }
-    grantedScopes, err := cpbe.FetchConsents(config.GetString("aapApi.public.url") + config.GetString("aapApi.public.endpoints.authorizations"), cpbeClient, consentRequest)
+    grantedScopes, err := aapapi.FetchConsents(config.GetString("aapApi.public.url") + config.GetString("aapApi.public.endpoints.authorizations"), aapapiClient, consentRequest)
     if err != nil {
       log.Debug(err.Error())
       c.HTML(http.StatusInternalServerError, "authorize.html", gin.H{
@@ -89,11 +89,11 @@ func ShowAuthorization(env *environment.State, route environment.Route) gin.Hand
       // Nothing to accept everything already accepted.
 
       environment.DebugLog(route.LogId, "ShowAuthorization", "Auto granted scopes: " + strings.Join(requestedScopes, ","), requestId)
-      authorizeRequest := cpbe.AuthorizeRequest{
+      authorizeRequest := aapapi.AuthorizeRequest{
         Challenge: consentChallenge,
         GrantScopes: requestedScopes,
       }
-      authorizationsAuthorizeResponse, _ := cpbe.Authorize(config.GetString("aapApi.public.url") + config.GetString("aapApi.public.endpoints.authorizationsAuthorize"), cpbeClient, authorizeRequest)
+      authorizationsAuthorizeResponse, _ := aapapi.Authorize(config.GetString("aapApi.public.url") + config.GetString("aapApi.public.endpoints.authorizationsAuthorize"), aapapiClient, authorizeRequest)
       if  authorizationsAuthorizeResponse.Authorized {
         c.Redirect(302, authorizationsAuthorizeResponse.RedirectTo)
         c.Abort()
@@ -164,18 +164,18 @@ func SubmitAuthorization(env *environment.State, route environment.Route) gin.Ha
 
     consentChallenge := c.Query("consent_challenge")
 
-    cpbeClient := cpbe.NewCpBeClient(env.CpBeConfig)
+    aapapiClient := aapapi.NewAapApiClient(env.AapApiConfig)
 
     if form.Accept != "" {
 
       consents := form.Consents
 
       // To prevent tampering we ask for the authorzation data again to get client_id, subject etc.
-      var authorizeRequest = cpbe.AuthorizeRequest{
+      var authorizeRequest = aapapi.AuthorizeRequest{
         Challenge: consentChallenge,
         // NOTE: Do not add GrantScopes here as it will grant them instead of reading data from the challenge.
       }
-      authorizeResponse, err := cpbe.Authorize(config.GetString("aapApi.public.url") + config.GetString("aapApi.public.endpoints.authorizationsAuthorize"), cpbeClient, authorizeRequest)
+      authorizeResponse, err := aapapi.Authorize(config.GetString("aapApi.public.url") + config.GetString("aapApi.public.endpoints.authorizationsAuthorize"), aapapiClient, authorizeRequest)
       if err != nil {
         fmt.Println(err)
         c.HTML(http.StatusInternalServerError, "authorize.html", gin.H{
@@ -190,7 +190,7 @@ func SubmitAuthorization(env *environment.State, route environment.Route) gin.Ha
       log.Debug("Please remove App is no longer needed")
 
       // Grant the accepted scopes to the client in Aap
-      consentRequest := cpbe.ConsentRequest{
+      consentRequest := aapapi.ConsentRequest{
         Subject: authorizeResponse.Subject,
         App: authorizeResponse.ClientId,
         ClientId: authorizeResponse.ClientId,
@@ -198,7 +198,7 @@ func SubmitAuthorization(env *environment.State, route environment.Route) gin.Ha
         RevokedScopes: revokedConsents,
         RequestedScopes: authorizeResponse.RequestedScopes, // Send what was requested just in case we need it.
       }
-      consentResponse, err := cpbe.CreateConsents(config.GetString("aapApi.public.url") + config.GetString("aapApi.public.endpoints.authorizations"), cpbeClient, consentRequest)
+      consentResponse, err := aapapi.CreateConsents(config.GetString("aapApi.public.url") + config.GetString("aapApi.public.endpoints.authorizations"), aapapiClient, consentRequest)
       if err != nil {
         fmt.Println(err)
         // FIXME: Signal errors to the authorization controller using session flash messages.
@@ -209,11 +209,11 @@ func SubmitAuthorization(env *environment.State, route environment.Route) gin.Ha
       fmt.Println(consentResponse)
 
       // Grant the accepted scopes to the client in Hydra
-      authorizeRequest = cpbe.AuthorizeRequest{
+      authorizeRequest = aapapi.AuthorizeRequest{
         Challenge: consentChallenge,
         GrantScopes: consents,
       }
-      authorizationsAuthorizeResponse, _ := cpbe.Authorize(config.GetString("aapApi.public.url") + config.GetString("aapApi.public.endpoints.authorizationsAuthorize"), cpbeClient, authorizeRequest)
+      authorizationsAuthorizeResponse, _ := aapapi.Authorize(config.GetString("aapApi.public.url") + config.GetString("aapApi.public.endpoints.authorizationsAuthorize"), aapapiClient, authorizeRequest)
       if  authorizationsAuthorizeResponse.Authorized {
         c.Redirect(302, authorizationsAuthorizeResponse.RedirectTo)
         c.Abort()
@@ -222,10 +222,10 @@ func SubmitAuthorization(env *environment.State, route environment.Route) gin.Ha
     }
 
     // Deny by default.
-    rejectRequest := cpbe.RejectRequest{
+    rejectRequest := aapapi.RejectRequest{
       Challenge: consentChallenge,
     }
-    rejectResponse, _ := cpbe.Reject(config.GetString("aapApi.public.url") + config.GetString("aapApi.public.endpoints.authorizationsReject"), cpbeClient, rejectRequest)
+    rejectResponse, _ := aapapi.Reject(config.GetString("aapApi.public.url") + config.GetString("aapApi.public.endpoints.authorizationsReject"), aapapiClient, rejectRequest)
     c.Redirect(302, rejectResponse.RedirectTo)
     c.Abort()
   }

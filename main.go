@@ -24,7 +24,7 @@ import (
   "github.com/pborman/getopt"
 )
 
-const app = "cpfe"
+const app = "aapui"
 
 func init() {
   config.InitConfigurations()
@@ -43,13 +43,13 @@ func main() {
     return
   }
 
-  // CpFe needs to be able as an App using client_id to access CpBe endpoints. Using client credentials flow
-  cpbeConfig := &clientcredentials.Config{
+  // CpFe needs to be able as an App using client_id to access AapApi endpoints. Using client credentials flow
+  aapapiConfig := &clientcredentials.Config{
     ClientID:  config.GetString("oauth2.client.id"),
     ClientSecret: config.GetString("oauth2.client.secret"),
     TokenURL: provider.Endpoint().TokenURL,
     Scopes: config.GetStringSlice("oauth2.scopes.required"),
-    EndpointParams: url.Values{"audience": {"cpbe"}},
+    EndpointParams: url.Values{"audience": {"aapapi"}},
     AuthStyle: 2, // https://godoc.org/golang.org/x/oauth2#AuthStyle
   }
 
@@ -57,7 +57,7 @@ func main() {
   env := &environment.State{
     AppName: app,
     Provider: provider,
-    CpBeConfig: cpbeConfig,
+    AapApiConfig: aapapiConfig,
   }
 
   optServe := getopt.BoolLong("serve", 0, "Serve application")
@@ -83,11 +83,11 @@ func serve(env *environment.State) {
   routes := map[string]environment.Route{
     "/": environment.Route{
        URL: "/",
-       LogId: "cpfe://",
+       LogId: "aapui://",
     },
     "/authorize": environment.Route{
       URL: "/authorize",
-      LogId: "cpfe://authorize",
+      LogId: "aapui://authorize",
     },
   }
 
