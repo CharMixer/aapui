@@ -1,7 +1,7 @@
 package main
 
 import (
-  "fmt"
+  //"fmt"
   "net/url"
   "os"
 
@@ -9,6 +9,7 @@ import (
   //"golang.org/x/oauth2"
   "golang.org/x/oauth2/clientcredentials"
 
+  "github.com/sirupsen/logrus"
   "github.com/gin-gonic/gin"
   "github.com/gorilla/csrf"
   "github.com/gwatts/gin-adapter"
@@ -23,15 +24,22 @@ import (
   "github.com/pborman/getopt"
 )
 
+const app = "cpfe"
+
 func init() {
   config.InitConfigurations()
 }
 
 func main() {
 
+  appFields := logrus.Fields{
+    "appname": app,
+    "func": "main",
+  }
+
   provider, err := oidc.NewProvider(context.Background(), config.GetString("hydra.public.url") + "/")
   if err != nil {
-    fmt.Println(err)
+    logrus.WithFields(appFields).WithFields(logrus.Fields{"component": "Hydra Provider"}).Fatal("oidc.NewProvider" + err.Error())
     return
   }
 
@@ -47,6 +55,7 @@ func main() {
 
   // Setup app state variables. Can be used in handler functions by doing closures see exchangeAuthorizationCodeCallback
   env := &environment.State{
+    AppName: app,
     Provider: provider,
     CpBeConfig: cpbeConfig,
   }
@@ -84,6 +93,7 @@ func serve(env *environment.State) {
 
   r := gin.Default()
   r.Use(ginrequestid.RequestId())
+  r.Use(logger(env))
 
   // Use CSRF on all our forms.
   adapterCSRF := adapter.Wrap(csrf.Protect([]byte(config.GetString("csrf.authKey")), csrf.Secure(true)))
@@ -104,4 +114,19 @@ func serve(env *environment.State) {
   }
 
   r.RunTLS(":" + config.GetString("serve.public.port"), config.GetString("serve.tls.cert.path"), config.GetString("serve.tls.key.path"))
+}
+
+func logger(env *environment.State) gin.HandlerFunc {
+  fn := func(c *gin.Context) {
+    var requestId string = c.MustGet(environment.RequestIdKey).(string)
+    logger := logrus.New() // Use this to direct request log somewhere else than app log
+    //logger.SetFormatter(&logrus.JSONFormatter{})
+    requestLog := logger.WithFields(logrus.Fields{
+      "appname": env.AppName,
+      "requestid": requestId,
+    })
+    c.Set(environment.LogKey, requestLog)
+    c.Next()
+  }
+  return gin.HandlerFunc(fn)
 }

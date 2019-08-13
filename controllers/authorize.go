@@ -5,6 +5,7 @@ import (
   "strings"
   "net/http"
 
+  "github.com/sirupsen/logrus"
   "github.com/gin-gonic/gin"
   "github.com/gorilla/csrf"
 
@@ -21,8 +22,14 @@ type authorizeForm struct {
 
 func ShowAuthorization(env *environment.State, route environment.Route) gin.HandlerFunc {
   fn := func(c *gin.Context) {
-    requestId := c.MustGet(environment.RequestIdKey).(string)
-    environment.DebugLog(route.LogId, "ShowAuthorization", "", requestId)
+
+    log := c.MustGet(environment.LogKey).(*logrus.Entry)
+    log = log.WithFields(logrus.Fields{
+      "route.logid": route.LogId,
+      "component": "aapui",
+      "func": "ShowAuthorization",
+    })
+    log.Debug("Received authorization request");
 
     // comes from hydra redirect
     consentChallenge := c.Query("consent_challenge")
@@ -47,7 +54,7 @@ func ShowAuthorization(env *environment.State, route environment.Route) gin.Hand
     }
 
     if authorizeResponse.Authorized {
-      environment.DebugLog(route.LogId, "ShowAuthorization", "Redirecting to " + authorizeResponse.RedirectTo, requestId)
+      log.Debug("Redirecting to " + authorizeResponse.RedirectTo)
       c.Redirect(http.StatusFound, authorizeResponse.RedirectTo)
       c.Abort()
       return
@@ -56,25 +63,27 @@ func ShowAuthorization(env *environment.State, route environment.Route) gin.Hand
     // NOTE: App requested more scopes of user than was previously granted to the app.
     var requestedScopes []string = authorizeResponse.RequestedScopes
 
+    log.Debug("Please remove App is no longer needed")
+
     // Look for already granted consents for the id (sub) and app (client_id), so we can create the diffenence set and only present user with what is missing.
     consentRequest := cpbe.ConsentRequest{
       Subject: authorizeResponse.Subject,
-      App: "idpui", // FIXME: Formalize this. Remeber an app could have more than one identity (client_id) if we wanted to segment access within the app
-      ClientId: "idpui", //authorizeResponse.ClientId, // "idpui"
+      App: authorizeResponse.ClientId,
+      ClientId: authorizeResponse.ClientId,
       RequestedScopes: requestedScopes, // Only look for permissions that was requested (query optimization)
     }
     grantedScopes, err := cpbe.FetchConsents(config.GetString("aapApi.public.url") + config.GetString("aapApi.public.endpoints.authorizations"), cpbeClient, consentRequest)
     if err != nil {
-      environment.DebugLog(route.LogId, "ShowAuthorization", "Error: " + err.Error(), requestId)
+      log.Debug(err.Error())
       c.HTML(http.StatusInternalServerError, "authorize.html", gin.H{
         "error": err.Error(),
       })
     }
-    environment.DebugLog(route.LogId, "ShowAuthorization", "Granted scopes " + strings.Join(grantedScopes, ",") + " for app: idpui and subject: " + authorizeResponse.Subject, requestId)
+    log.Debug("Granted scopes " + strings.Join(grantedScopes, ",") + " for app: idpui and subject: " + authorizeResponse.Subject)
 
     diffScopes := Difference(requestedScopes, grantedScopes)
 
-    // FIXME: Create identity property which decides if auto consent should be triggered.
+    log.Debug("FIXME: Create identity property which decides if auto consent should be triggered.");
     /*
     if len(diffScopes) <= 0 {
       // Nothing to accept everything already accepted.
@@ -141,8 +150,14 @@ func Difference(a, b []string) (diff []string) {
 
 func SubmitAuthorization(env *environment.State, route environment.Route) gin.HandlerFunc {
   fn := func(c *gin.Context) {
-    requestId := c.MustGet(environment.RequestIdKey).(string)
-    environment.DebugLog(route.LogId, "SubmitAuthorization", "", requestId)
+
+    log := c.MustGet(environment.LogKey).(*logrus.Entry)
+    log = log.WithFields(logrus.Fields{
+      "route.logid": route.LogId,
+      "component": "aapui",
+      "func": "SubmitAuthorization",
+    })
+    log.Debug("Received authorization request");
 
     var form authorizeForm
     c.Bind(&form)
@@ -172,11 +187,13 @@ func SubmitAuthorization(env *environment.State, route environment.Route) gin.Ha
 
       revokedConsents := Difference(authorizeResponse.RequestedScopes, consents)
 
+      log.Debug("Please remove App is no longer needed")
+
       // Grant the accepted scopes to the client in Aap
       consentRequest := cpbe.ConsentRequest{
         Subject: authorizeResponse.Subject,
-        App: "idpui", // FIXME: Formalize this. Remeber an app could have more than one identity (client_id) if we wanted to segment access within the app
-        ClientId: "idpui", //authorizeResponse.ClientId, // "idpui"
+        App: authorizeResponse.ClientId,
+        ClientId: authorizeResponse.ClientId,
         GrantedScopes: consents,
         RevokedScopes: revokedConsents,
         RequestedScopes: authorizeResponse.RequestedScopes, // Send what was requested just in case we need it.
