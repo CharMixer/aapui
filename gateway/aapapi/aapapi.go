@@ -1,4 +1,4 @@
-package cpbe
+package aapapi
 
 import (
   "net/http"
@@ -49,17 +49,17 @@ type ConsentRequest struct {
 
 }*/
 
-type CpBeClient struct {
+type AapApiClient struct {
   *http.Client
 }
 
-func NewCpBeClient(config *clientcredentials.Config) *CpBeClient {
+func NewAapApiClient(config *clientcredentials.Config) *AapApiClient {
   ctx := context.Background()
   client := config.Client(ctx)
-  return &CpBeClient{client}
+  return &AapApiClient{client}
 }
 
-func CreateConsents(authorizationsUrl string, client *CpBeClient, consentRequest ConsentRequest) ([]string, error) {
+func CreateConsents(authorizationsUrl string, client *AapApiClient, consentRequest ConsentRequest) ([]string, error) {
 
   body, err := json.Marshal(consentRequest)
   if err != nil {
@@ -98,7 +98,7 @@ func CreateConsents(authorizationsUrl string, client *CpBeClient, consentRequest
   return grantedConsents, nil
 }
 
-func FetchConsents(authorizationsUrl string, client *CpBeClient, consentRequest ConsentRequest) ([]string, error) {
+func FetchConsents(authorizationsUrl string, client *AapApiClient, consentRequest ConsentRequest) ([]string, error) {
 
   rawRequest, err := http.NewRequest("GET", authorizationsUrl, nil)
   if err != nil {
@@ -139,7 +139,7 @@ func FetchConsents(authorizationsUrl string, client *CpBeClient, consentRequest 
   return grantedConsents, nil
 }
 
-func Authorize(authorizeUrl string, client *CpBeClient, authorizeRequest AuthorizeRequest) (AuthorizeResponse, error) {
+func Authorize(authorizeUrl string, client *AapApiClient, authorizeRequest AuthorizeRequest) (AuthorizeResponse, error) {
   var authorizeResponse AuthorizeResponse
 
   body, err := json.Marshal(authorizeRequest)
@@ -177,7 +177,7 @@ func Authorize(authorizeUrl string, client *CpBeClient, authorizeRequest Authori
   return authorizeResponse, nil
 }
 
-func Reject(authorizeUrl string, client *CpBeClient, rejectRequest RejectRequest) (RejectResponse, error) {
+func Reject(authorizeUrl string, client *AapApiClient, rejectRequest RejectRequest) (RejectResponse, error) {
   var rejectResponse RejectResponse
 
   body, err := json.Marshal(rejectRequest)

@@ -25,8 +25,8 @@ cmd=$(docker run --rm -it \
     --name $CLIENT_NAME \
     --grant-types client_credentials \
     --response-types token \
-    --scope openid,cpbe.authorize \
-    --audience cpbe)
+    --scope openid,aapapi.authorize \
+    --audience aapapi)
 
 if [ "$?" -eq 0 ]
 then

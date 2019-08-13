@@ -15,7 +15,7 @@ const (
 type State struct {
   AppName string
   Provider *oidc.Provider
-  CpBeConfig *clientcredentials.Config
+  AapApiConfig *clientcredentials.Config
 }
 
 type Route struct {
