@@ -12,8 +12,7 @@ const (
   LogKey string = "log"
 )
 
-type State struct {
-  AppName string
+type State struct {  
   Provider *oidc.Provider
   AapApiConfig *clientcredentials.Config
 }
