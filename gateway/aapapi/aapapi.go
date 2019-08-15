@@ -7,8 +7,6 @@ import (
   "bytes"
   "strings"
   "errors"
-  "fmt"
-
   "golang.org/x/net/context"
   "golang.org/x/oauth2/clientcredentials"
 )
@@ -82,10 +80,8 @@ func CreateConsents(authorizationsUrl string, client *AapApiClient, consentReque
     return nil, err
   }
 
-  fmt.Println(string(responseData))
-
   if response.StatusCode != 200 {
-    return nil, errors.New("Create consents request failed.")
+    return nil, errors.New("Failed to create consents: " + string(responseData))
   }
 
   var grantedConsents []string
@@ -125,8 +121,7 @@ func FetchConsents(authorizationsUrl string, client *AapApiClient, consentReques
   }
 
   if rawResponse.StatusCode != 200 {
-    fmt.Println(string(responseData))
-    return nil, errors.New("Failed to fetch consents")
+    return nil, errors.New("Failed to fetch consents: " + string(responseData))
   }
 
   var grantedConsents []string
@@ -163,8 +158,7 @@ func Authorize(authorizeUrl string, client *AapApiClient, authorizeRequest Autho
   }
 
   if response.StatusCode != 200 {
-    fmt.Println(string(responseData))
-    return authorizeResponse, errors.New("Authorize request failed.")
+    return authorizeResponse, errors.New("Failed to authorize: " + string(responseData))
   }
 
   err = json.Unmarshal(responseData, &authorizeResponse)
@@ -200,8 +194,7 @@ func Reject(authorizeUrl string, client *AapApiClient, rejectRequest RejectReque
   }
 
   if response.StatusCode != 200 {
-    fmt.Println(string(responseData))
-    return rejectResponse, errors.New("Reject request failed")
+    return rejectResponse, errors.New("Failed to reject: " + string(responseData))
   }
 
   err = json.Unmarshal(responseData, &rejectResponse)
