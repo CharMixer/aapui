@@ -81,7 +81,7 @@ func CreateConsents(authorizationsUrl string, client *AapApiClient, consentReque
   }
 
   if response.StatusCode != 200 {
-    return nil, errors.New("Failed to create consents: " + string(responseData))
+    return nil, errors.New("Failed to create consents, status: " + string(response.StatusCode) + ", error="+string(responseData))
   }
 
   var grantedConsents []string
@@ -95,12 +95,12 @@ func CreateConsents(authorizationsUrl string, client *AapApiClient, consentReque
 
 func FetchConsents(authorizationsUrl string, client *AapApiClient, consentRequest ConsentRequest) ([]string, error) {
 
-  rawRequest, err := http.NewRequest("GET", authorizationsUrl, nil)
+  request, err := http.NewRequest("GET", authorizationsUrl, nil)
   if err != nil {
     return nil, err
   }
 
-  query := rawRequest.URL.Query()
+  query := request.URL.Query()
   query.Add("id", consentRequest.Subject)
   if consentRequest.ClientId != "" {
     query.Add("client_id", consentRequest.ClientId)
@@ -108,20 +108,20 @@ func FetchConsents(authorizationsUrl string, client *AapApiClient, consentReques
   if len(consentRequest.RequestedScopes) > 0 {
     query.Add("scope", strings.Join(consentRequest.RequestedScopes, ","))
   }
-  rawRequest.URL.RawQuery = query.Encode()
+  request.URL.RawQuery = query.Encode()
 
-  rawResponse, err := client.Do(rawRequest)
+  response, err := client.Do(request)
   if err != nil {
     return nil, err
   }
 
-  responseData, err := ioutil.ReadAll(rawResponse.Body)
+  responseData, err := ioutil.ReadAll(response.Body)
   if err != nil {
     return nil, err
   }
 
-  if rawResponse.StatusCode != 200 {
-    return nil, errors.New("Failed to fetch consents: " + string(responseData))
+  if response.StatusCode != 200 {
+    return nil, errors.New("Failed to fetch consents, status: " + string(response.StatusCode) + ", error="+string(responseData))
   }
 
   var grantedConsents []string
@@ -158,7 +158,7 @@ func Authorize(authorizeUrl string, client *AapApiClient, authorizeRequest Autho
   }
 
   if response.StatusCode != 200 {
-    return authorizeResponse, errors.New("Failed to authorize: " + string(responseData))
+    return authorizeResponse, errors.New("Failed to authorize, status: " + string(response.StatusCode) + ", error="+string(responseData))
   }
 
   err = json.Unmarshal(responseData, &authorizeResponse)
@@ -194,7 +194,7 @@ func Reject(authorizeUrl string, client *AapApiClient, rejectRequest RejectReque
   }
 
   if response.StatusCode != 200 {
-    return rejectResponse, errors.New("Failed to reject: " + string(responseData))
+    return rejectResponse, errors.New("Failed to reject, status: " + string(response.StatusCode) + ", error="+string(responseData))
   }
 
   err = json.Unmarshal(responseData, &rejectResponse)
