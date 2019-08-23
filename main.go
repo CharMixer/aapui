@@ -107,6 +107,7 @@ func serve(env *environment.State) {
   routes := map[string]environment.Route{
     "/":          environment.Route{URL: "/",          LogId: "aapui://"},
     "/authorize": environment.Route{URL: "/authorize", LogId: "aapui://authorize"},
+    "/dashboard": environment.Route{URL: "/dashboard", LogId: "aapui://dashboard"},
   }
 
   r := gin.New() // Clean gin to take control with logging.
@@ -131,6 +132,8 @@ func serve(env *environment.State) {
 
     ep.GET(routes["/authorize"].URL, controllers.ShowAuthorization(env, routes["/authorize"]))
     ep.POST(routes["/authorize"].URL, controllers.SubmitAuthorization(env, routes["/authorize"]))
+
+    ep.GET(routes["/dashboard"].URL, controllers.ShowDashboard(env, routes["/dashboard"]))
   }
 
   r.RunTLS(":" + config.GetString("serve.public.port"), config.GetString("serve.tls.cert.path"), config.GetString("serve.tls.key.path"))
