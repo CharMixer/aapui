@@ -108,6 +108,8 @@ func serve(env *environment.State) {
     "/":          environment.Route{URL: "/",          LogId: "aapui://"},
     "/authorize": environment.Route{URL: "/authorize", LogId: "aapui://authorize"},
     "/dashboard": environment.Route{URL: "/dashboard", LogId: "aapui://dashboard"},
+    "/authorizations": environment.Route{URL: "/authorizations", LogId: "aapui://authorizations"},
+    "/access": environment.Route{URL: "/access", LogId: "aapui://access"},
   }
 
   r := gin.New() // Clean gin to take control with logging.
@@ -134,6 +136,8 @@ func serve(env *environment.State) {
     ep.POST(routes["/authorize"].URL, controllers.SubmitAuthorization(env, routes["/authorize"]))
 
     ep.GET(routes["/dashboard"].URL, controllers.ShowDashboard(env, routes["/dashboard"]))
+    ep.GET(routes["/authorizations"].URL, controllers.ShowAuthorizations(env, routes["/authorizations"]))
+    ep.GET(routes["/access"].URL, controllers.ShowAccess(env, routes["/access"]))
   }
 
   r.RunTLS(":" + config.GetString("serve.public.port"), config.GetString("serve.tls.cert.path"), config.GetString("serve.tls.key.path"))
@@ -153,11 +157,11 @@ func RequestLogger(env *environment.State) gin.HandlerFunc {
     })
     c.Set(environment.LogKey, requestLog)
 
-		c.Next()
+    c.Next()
 
-		// Stop timer
-		stop := time.Now()
-		latency := stop.Sub(start)
+    // Stop timer
+    stop := time.Now()
+    latency := stop.Sub(start)
 
     ipData, err := getRequestIpData(c.Request)
     if err != nil {
@@ -173,18 +177,18 @@ func RequestLogger(env *environment.State) gin.HandlerFunc {
       }).Debug(err.Error())
     }
 
-		method := c.Request.Method
-		statusCode := c.Writer.Status()
-		errorMessage := c.Errors.ByType(gin.ErrorTypePrivate).String()
+    method := c.Request.Method
+    statusCode := c.Writer.Status()
+    errorMessage := c.Errors.ByType(gin.ErrorTypePrivate).String()
 
-		bodySize := c.Writer.Size()
+    bodySize := c.Writer.Size()
 
     var fullpath string = path
-		if raw != "" {
-			fullpath = path + "?" + raw
-		}
+    if raw != "" {
+      fullpath = path + "?" + raw
+    }
 
-		log.WithFields(appFields).WithFields(logrus.Fields{
+    log.WithFields(appFields).WithFields(logrus.Fields{
       "latency": latency,
       "forwarded_for.ip": forwardedForIpData.Ip,
       "forwarded_for.port": forwardedForIpData.Port,
