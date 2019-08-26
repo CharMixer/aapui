@@ -7,16 +7,16 @@ import (
   "golang-cp-fe/environment"
 )
 
-func ShowDashboard(env *environment.State, route environment.Route) gin.HandlerFunc {
+func ShowAuthorizations(env *environment.State, route environment.Route) gin.HandlerFunc {
   fn := func(c *gin.Context) {
 
     log := c.MustGet(environment.LogKey).(*logrus.Entry)
     log = log.WithFields(logrus.Fields{
-      "func": "ShowDashboard",
+      "func": "ShowAuthorizations",
     })
 
-    c.HTML(200, "dashboard.html", gin.H{
-      "title": "Dashboard",
+    c.HTML(200, "authorizations.html", gin.H{
+      "title": "Authorizations",
       csrf.TemplateTag: csrf.TemplateField(c.Request),
       "links": []map[string]string{
         {"href": "/public/css/dashboard.css"},
