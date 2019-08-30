@@ -59,12 +59,15 @@ func ShowAuthorization(env *environment.State, route environment.Route) gin.Hand
     consentRequest := aapapi.ConsentRequest{
       Subject: authorizeResponse.Subject,
       ClientId: authorizeResponse.ClientId,
+      RequestedAudiences: authorizeResponse.RequestedAudiences,
       RequestedScopes: requestedScopes, // Only look for permissions that was requested (query optimization)
     }
     grantedScopes, err := aapapi.FetchConsents(config.GetString("aapapi.public.url") + config.GetString("aapapi.public.endpoints.authorizations"), aapapiClient, consentRequest)
     if err != nil {
       log.Debug(err.Error())
       c.HTML(http.StatusInternalServerError, "authorize.html", gin.H{"error": err.Error()})
+      c.Abort()
+      return
     }
 
     strGrantedScopes := strings.Join(grantedScopes, ",")
@@ -179,6 +182,7 @@ func SubmitAuthorization(env *environment.State, route environment.Route) gin.Ha
       consentRequest := aapapi.ConsentRequest{
         Subject: authorizeResponse.Subject,
         ClientId: authorizeResponse.ClientId,
+        //ResourceServerClientId: "idpapi",
         GrantedScopes: consents,
         RevokedScopes: revokedConsents,
         RequestedScopes: authorizeResponse.RequestedScopes, // Send what was requested just in case we need it.
