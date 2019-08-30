@@ -116,12 +116,20 @@ func ShowAuthorization(env *environment.State, route environment.Route) gin.Hand
       }
     }
 
+    var requestedAudiences = make(map[int]map[string]string)
+    for index, aud := range consentRequest.RequestedAudiences {
+      requestedAudiences[index] = map[string]string{
+        "aud": aud,
+      }
+    }
+
     c.HTML(200, "authorize.html", gin.H{
       csrf.TemplateTag: csrf.TemplateField(c.Request),
       "name": authorizeResponse.Subject,
       "client_id": authorizeResponse.ClientId,
       "requested_scopes": requestedConsents,
       "granted_scopes": grantedConsents,
+      "requested_audiences": requestedAudiences,
       "consent_challenge": consentChallenge,
     })
   }
@@ -182,10 +190,10 @@ func SubmitAuthorization(env *environment.State, route environment.Route) gin.Ha
       consentRequest := aapapi.ConsentRequest{
         Subject: authorizeResponse.Subject,
         ClientId: authorizeResponse.ClientId,
-        //ResourceServerClientId: "idpapi",
         GrantedScopes: consents,
         RevokedScopes: revokedConsents,
         RequestedScopes: authorizeResponse.RequestedScopes, // Send what was requested just in case we need it.
+        RequestedAudiences: authorizeResponse.RequestedAudiences,
       }
       _ /* consentResponse */, err = aapapi.CreateConsents(config.GetString("aapapi.public.url") + config.GetString("aapapi.public.endpoints.authorizations"), aapapiClient, consentRequest)
       if err != nil {
