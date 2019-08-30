@@ -24,6 +24,7 @@ type AuthorizeResponse struct {
   RedirectTo                  string            `json:"redirect_to,omitempty"`
   Subject                     string            `json:"subject,omitempty"`
   ClientId                    string            `json:"client_id,omitempty"`
+  RequestedAudiences          []string            `json:"requested_audiences,omitempty"` // requested_access_token_audience
 }
 
 type RejectRequest struct {
@@ -40,6 +41,16 @@ type ConsentRequest struct {
   GrantedScopes []string `json:"granted_scopes,omitempty"`
   RevokedScopes []string `json:"revoked_scopes,omitempty"`
   RequestedScopes []string `json:"requested_scopes,omitempty"`
+  RequestedAudiences []string `json:"requested_audiences,omitempty"` // requested_access_token_audience
+}
+
+type CreateConsentRequest struct {
+  Subject                string   `json:"sub" binding:"required"`
+  ClientId               string   `json:"client_id" binding:"required"`
+  Audience               string   `json:"aud" binding:"required"`
+  GrantedScopes          []string `json:"granted_scopes,omitempty"`
+  RevokedScopes          []string `json:"revoked_scopes,omitempty"`
+  RequestedScopes        []string `json:"requested_scopes,omitempty"`
 }
 
 /*type ConsentResponse struct {
@@ -108,6 +119,7 @@ func FetchConsents(authorizationsUrl string, client *AapApiClient, consentReques
   if len(consentRequest.RequestedScopes) > 0 {
     query.Add("scope", strings.Join(consentRequest.RequestedScopes, ","))
   }
+  // FIXME: Add audience to request
   request.URL.RawQuery = query.Encode()
 
   response, err := client.Do(request)
