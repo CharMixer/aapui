@@ -1,4 +1,4 @@
-package aapapi
+package aap
 
 import (
   "net/http"
@@ -131,7 +131,7 @@ func FetchConsents(authorizationsUrl string, client *AapApiClient, consentReques
     return nil, errors.New("Failed to fetch consents, status: " + string(response.StatusCode) + ", error="+string(responseData))
   }
 
-  fmt.Println("=== idpui.aapapi.FetchConsents ===")
+  fmt.Println("=== idpui.aap.FetchConsents ===")
   fmt.Println(string(responseData))
 
   var grantedConsents []string
@@ -171,7 +171,7 @@ func Authorize(authorizeUrl string, client *AapApiClient, authorizeRequest Autho
     return authorizeResponse, errors.New("Failed to authorize, status: " + string(response.StatusCode) + ", error="+string(responseData))
   }
 
-  fmt.Println("=== idpui.aapapi.Authorize ===")
+  fmt.Println("=== idpui.aap.Authorize ===")
   fmt.Println(string(responseData))
 
   err = json.Unmarshal(responseData, &authorizeResponse)
