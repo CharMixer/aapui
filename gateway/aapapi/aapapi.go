@@ -9,6 +9,7 @@ import (
   "errors"
   "golang.org/x/net/context"
   "golang.org/x/oauth2/clientcredentials"
+  "fmt"
 )
 
 type AuthorizeRequest struct {
@@ -24,6 +25,7 @@ type AuthorizeResponse struct {
   RedirectTo                  string            `json:"redirect_to,omitempty"`
   Subject                     string            `json:"subject,omitempty"`
   ClientId                    string            `json:"client_id,omitempty"`
+  RequestedAudiences          []string          `json:"requested_audiences,omitempty"` // requested_access_token_audience
 }
 
 type RejectRequest struct {
@@ -35,16 +37,17 @@ type RejectResponse struct {
 }
 
 type ConsentRequest struct {
-  Subject string `json:"sub" binding:"required"`
-  ClientId string `json:"client_id,omitempty"`
-  GrantedScopes []string `json:"granted_scopes,omitempty"`
-  RevokedScopes []string `json:"revoked_scopes,omitempty"`
-  RequestedScopes []string `json:"requested_scopes,omitempty"`
+  Subject              string `form:"sub" json:"sub" binding:"required"`
+  ClientId             string `form:"client_id,omitempty" json:"client_id,omitempty" binding:"required"`
+  GrantedScopes      []string `form:"granted_scopes,omitempty" json:"granted_scopes,omitempty"`
+  RevokedScopes      []string `form:"revoked_scopes,omitempty" json:"revoked_scopes,omitempty"`
+  RequestedScopes    []string `form:"requested_scopes,omitempty" json:"requested_scopes,omitempty"`
+  RequestedAudiences []string `form:"requested_audiences,omitempty" json:"requested_audiences,omitempty"` // hydra.requested_access_token_audience
 }
 
-/*type ConsentResponse struct {
+type ConsentResponse struct {
 
-}*/
+}
 
 type AapApiClient struct {
   *http.Client
@@ -101,13 +104,17 @@ func FetchConsents(authorizationsUrl string, client *AapApiClient, consentReques
   }
 
   query := request.URL.Query()
-  query.Add("id", consentRequest.Subject)
-  if consentRequest.ClientId != "" {
-    query.Add("client_id", consentRequest.ClientId)
-  }
+  query.Add("sub", consentRequest.Subject)
+  query.Add("client_id", consentRequest.ClientId)
+
   if len(consentRequest.RequestedScopes) > 0 {
-    query.Add("scope", strings.Join(consentRequest.RequestedScopes, ","))
+    query.Add("requested_scopes", strings.Join(consentRequest.RequestedScopes, ","))
   }
+
+  if len(consentRequest.RequestedAudiences) > 0 {
+    query.Add("requested_audiences", strings.Join(consentRequest.RequestedAudiences, ","))
+  }
+
   request.URL.RawQuery = query.Encode()
 
   response, err := client.Do(request)
@@ -123,6 +130,9 @@ func FetchConsents(authorizationsUrl string, client *AapApiClient, consentReques
   if response.StatusCode != 200 {
     return nil, errors.New("Failed to fetch consents, status: " + string(response.StatusCode) + ", error="+string(responseData))
   }
+
+  fmt.Println("=== idpui.aapapi.FetchConsents ===")
+  fmt.Println(string(responseData))
 
   var grantedConsents []string
   err = json.Unmarshal(responseData, &grantedConsents)
@@ -160,6 +170,9 @@ func Authorize(authorizeUrl string, client *AapApiClient, authorizeRequest Autho
   if response.StatusCode != 200 {
     return authorizeResponse, errors.New("Failed to authorize, status: " + string(response.StatusCode) + ", error="+string(responseData))
   }
+
+  fmt.Println("=== idpui.aapapi.Authorize ===")
+  fmt.Println(string(responseData))
 
   err = json.Unmarshal(responseData, &authorizeResponse)
   if err != nil {
