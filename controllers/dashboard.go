@@ -4,7 +4,8 @@ import (
   "github.com/sirupsen/logrus"
   "github.com/gin-gonic/gin"
   "github.com/gorilla/csrf"
-  "aapui/environment"
+
+  "github.com/charmixer/aapui/environment"
 )
 
 func ShowDashboard(env *environment.State, route environment.Route) gin.HandlerFunc {

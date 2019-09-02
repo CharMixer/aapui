@@ -6,9 +6,10 @@ import (
   "github.com/sirupsen/logrus"
   "github.com/gin-gonic/gin"
   "github.com/gorilla/csrf"
-  "aapui/config"
-  "aapui/environment"
-  "aapui/gateway/aap"
+
+  "github.com/charmixer/aapui/config"
+  "github.com/charmixer/aapui/environment"
+  "github.com/charmixer/aapui/gateway/aap"
 )
 
 type authorizeForm struct {

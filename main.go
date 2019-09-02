@@ -12,10 +12,11 @@ import (
   "github.com/gwatts/gin-adapter"
   "github.com/atarantini/ginrequestid"
   oidc "github.com/coreos/go-oidc"
-  "aapui/config"
-  "aapui/environment"
-  "aapui/controllers"
   "github.com/pborman/getopt"
+
+  "github.com/charmixer/aapui/config"
+  "github.com/charmixer/aapui/environment"
+  "github.com/charmixer/aapui/controllers"
 )
 
 const app = "aapui"
