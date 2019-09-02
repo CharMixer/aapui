@@ -177,13 +177,26 @@ img.circle {
   list-style-type: none;
 }
 .sidenav__list-item {
-  padding: $sidebar-padding;
-  color: $sidebar-fg;
+  a {
+    padding: $sidebar-padding;
+    color: $sidebar-fg;
+    display:block;
+    text-decoration: none;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.2);
+      cursor: pointer;
+    }
+  }
 }
-.sidenav__list-item:hover {
-  background-color: rgba(255, 255, 255, 0.2);
-  cursor: pointer;
+.sidenav__list-seperator {
+  font-weight: bold;
+  margin-top:20px;
+    padding: $sidebar-padding;
+    color: $sidebar-fg;
+    display:block;
 }
+
 
 .main-header {
   display: flex;
