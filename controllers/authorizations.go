@@ -4,7 +4,7 @@ import (
   "github.com/sirupsen/logrus"
   "github.com/gin-gonic/gin"
   "github.com/gorilla/csrf"
-  "golang-cp-fe/environment"
+  "aapui/environment"
 )
 
 func ShowAuthorizations(env *environment.State, route environment.Route) gin.HandlerFunc {

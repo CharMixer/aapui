@@ -6,9 +6,9 @@ import (
   "github.com/sirupsen/logrus"
   "github.com/gin-gonic/gin"
   "github.com/gorilla/csrf"
-  "golang-cp-fe/config"
-  "golang-cp-fe/environment"
-  "golang-cp-fe/gateway/aapapi"
+  "aapui/config"
+  "aapui/environment"
+  "aapui/gateway/aap"
 )
 
 type authorizeForm struct {
@@ -33,12 +33,12 @@ func ShowAuthorization(env *environment.State, route environment.Route) gin.Hand
       return
     }
 
-    aapapiClient := aapapi.NewAapApiClient(env.AapApiConfig)
+    aapClient := aap.NewAapApiClient(env.AapApiConfig)
 
-    var authorizeRequest = aapapi.AuthorizeRequest{
+    var authorizeRequest = aap.AuthorizeRequest{
       Challenge: consentChallenge,
     }
-    authorizeResponse, err := aapapi.Authorize(config.GetString("aapapi.public.url") + config.GetString("aapapi.public.endpoints.authorizationsAuthorize"), aapapiClient, authorizeRequest)
+    authorizeResponse, err := aap.Authorize(config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.authorizationsAuthorize"), aapClient, authorizeRequest)
     if err != nil {
       c.HTML(http.StatusInternalServerError, "authorize.html", gin.H{"error": err.Error()})
       c.Abort()
@@ -56,13 +56,13 @@ func ShowAuthorization(env *environment.State, route environment.Route) gin.Hand
     var requestedScopes []string = authorizeResponse.RequestedScopes
 
     // Look for already granted consents for the id (sub) and app (client_id), so we can create the diffenence set and only present user with what is missing.
-    consentRequest := aapapi.ConsentRequest{
+    consentRequest := aap.ConsentRequest{
       Subject: authorizeResponse.Subject,
       ClientId: authorizeResponse.ClientId,
       RequestedAudiences: authorizeResponse.RequestedAudiences,
       RequestedScopes: requestedScopes, // Only look for permissions that was requested (query optimization)
     }
-    grantedScopes, err := aapapi.FetchConsents(config.GetString("aapapi.public.url") + config.GetString("aapapi.public.endpoints.authorizations"), aapapiClient, consentRequest)
+    grantedScopes, err := aap.FetchConsents(config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.authorizations"), aapClient, consentRequest)
     if err != nil {
       log.Debug(err.Error())
       c.HTML(http.StatusInternalServerError, "authorize.html", gin.H{"error": err.Error()})
@@ -85,11 +85,11 @@ func ShowAuthorization(env *environment.State, route environment.Route) gin.Hand
       // Nothing to accept everything already accepted.
 
       environment.DebugLog(route.LogId, "ShowAuthorization", "Auto granted scopes: " + strings.Join(requestedScopes, ","), requestId)
-      authorizeRequest := aapapi.AuthorizeRequest{
+      authorizeRequest := aap.AuthorizeRequest{
         Challenge: consentChallenge,
         GrantScopes: requestedScopes,
       }
-      authorizationsAuthorizeResponse, _ := aapapi.Authorize(config.GetString("aapApi.public.url") + config.GetString("aapApi.public.endpoints.authorizationsAuthorize"), aapapiClient, authorizeRequest)
+      authorizationsAuthorizeResponse, _ := aap.Authorize(config.GetString("aapApi.public.url") + config.GetString("aapApi.public.endpoints.authorizationsAuthorize"), aapClient, authorizeRequest)
       if  authorizationsAuthorizeResponse.Authorized {
         c.Redirect(302, authorizationsAuthorizeResponse.RedirectTo)
         c.Abort()
@@ -165,18 +165,18 @@ func SubmitAuthorization(env *environment.State, route environment.Route) gin.Ha
 
     consentChallenge := c.Query("consent_challenge")
 
-    aapapiClient := aapapi.NewAapApiClient(env.AapApiConfig)
+    aapClient := aap.NewAapApiClient(env.AapApiConfig)
 
     if form.Accept != "" {
 
       consents := form.Consents
 
       // To prevent tampering we ask for the authorzation data again to get client_id, subject etc.
-      var authorizeRequest = aapapi.AuthorizeRequest{
+      var authorizeRequest = aap.AuthorizeRequest{
         Challenge: consentChallenge,
         // NOTE: Do not add GrantScopes here as it will grant them instead of reading data from the challenge. (This is a masked Read call)
       }
-      authorizeResponse, err := aapapi.Authorize(config.GetString("aapapi.public.url") + config.GetString("aapapi.public.endpoints.authorizationsAuthorize"), aapapiClient, authorizeRequest)
+      authorizeResponse, err := aap.Authorize(config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.authorizationsAuthorize"), aapClient, authorizeRequest)
       if err != nil {
         log.Debug(err.Error())
         c.HTML(http.StatusInternalServerError, "authorize.html", gin.H{"error": err.Error()})
@@ -187,7 +187,7 @@ func SubmitAuthorization(env *environment.State, route environment.Route) gin.Ha
       revokedConsents := Difference(authorizeResponse.RequestedScopes, consents)
 
       // Grant the accepted scopes to the client in Aap
-      consentRequest := aapapi.ConsentRequest{
+      consentRequest := aap.ConsentRequest{
         Subject: authorizeResponse.Subject,
         ClientId: authorizeResponse.ClientId,
         GrantedScopes: consents,
@@ -195,7 +195,7 @@ func SubmitAuthorization(env *environment.State, route environment.Route) gin.Ha
         RequestedScopes: authorizeResponse.RequestedScopes, // Send what was requested just in case we need it.
         RequestedAudiences: authorizeResponse.RequestedAudiences,
       }
-      _ /* consentResponse */, err = aapapi.CreateConsents(config.GetString("aapapi.public.url") + config.GetString("aapapi.public.endpoints.authorizations"), aapapiClient, consentRequest)
+      _ /* consentResponse */, err = aap.CreateConsents(config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.authorizations"), aapClient, consentRequest)
       if err != nil {
         log.Debug(err.Error())
         log.WithFields(logrus.Fields{"fixme": 1}).Debug("Signal errors to the authorization controller using session flash messages")
@@ -205,11 +205,11 @@ func SubmitAuthorization(env *environment.State, route environment.Route) gin.Ha
       }
 
       // Grant the accepted scopes to the client in Hydra
-      authorizeRequest = aapapi.AuthorizeRequest{
+      authorizeRequest = aap.AuthorizeRequest{
         Challenge: consentChallenge,
         GrantScopes: consents,
       }
-      authorizationsAuthorizeResponse, _ := aapapi.Authorize(config.GetString("aapapi.public.url") + config.GetString("aapapi.public.endpoints.authorizationsAuthorize"), aapapiClient, authorizeRequest)
+      authorizationsAuthorizeResponse, _ := aap.Authorize(config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.authorizationsAuthorize"), aapClient, authorizeRequest)
       if  authorizationsAuthorizeResponse.Authorized {
         c.Redirect(302, authorizationsAuthorizeResponse.RedirectTo)
         c.Abort()
@@ -218,10 +218,10 @@ func SubmitAuthorization(env *environment.State, route environment.Route) gin.Ha
     }
 
     // Deny by default.
-    rejectRequest := aapapi.RejectRequest{
+    rejectRequest := aap.RejectRequest{
       Challenge: consentChallenge,
     }
-    rejectResponse, _ := aapapi.Reject(config.GetString("aapapi.public.url") + config.GetString("aapapi.public.endpoints.authorizationsReject"), aapapiClient, rejectRequest)
+    rejectResponse, _ := aap.Reject(config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.authorizationsReject"), aapClient, rejectRequest)
     c.Redirect(302, rejectResponse.RedirectTo)
     c.Abort()
   }

@@ -12,9 +12,9 @@ import (
   "github.com/gwatts/gin-adapter"
   "github.com/atarantini/ginrequestid"
   oidc "github.com/coreos/go-oidc"
-  "golang-cp-fe/config"
-  "golang-cp-fe/environment"
-  "golang-cp-fe/controllers"
+  "aapui/config"
+  "aapui/environment"
+  "aapui/controllers"
   "github.com/pborman/getopt"
 )
 
@@ -69,19 +69,19 @@ func main() {
   }
 
   // CpFe needs to be able as an App using client_id to access AapApi endpoints. Using client credentials flow
-  aapapiConfig := &clientcredentials.Config{
+  aapConfig := &clientcredentials.Config{
     ClientID:  config.GetString("oauth2.client.id"),
     ClientSecret: config.GetString("oauth2.client.secret"),
     TokenURL: provider.Endpoint().TokenURL,
     Scopes: config.GetStringSlice("oauth2.scopes.required"),
-    EndpointParams: url.Values{"audience": {"aapapi"}},
+    EndpointParams: url.Values{"audience": {"aap"}},
     AuthStyle: 2, // https://godoc.org/golang.org/x/oauth2#AuthStyle
   }
 
   // Setup app state variables. Can be used in handler functions by doing closures see exchangeAuthorizationCodeCallback
   env := &environment.State{
     Provider: provider,
-    AapApiConfig: aapapiConfig,
+    AapApiConfig: aapConfig,
   }
 
   //optServe := getopt.BoolLong("serve", 0, "Serve application")
