@@ -6,10 +6,10 @@ import (
   "github.com/sirupsen/logrus"
   "github.com/gin-gonic/gin"
   "github.com/gorilla/csrf"
+  aap "github.com/charmixer/aap/client"
 
   "github.com/charmixer/aapui/config"
   "github.com/charmixer/aapui/environment"
-  "github.com/charmixer/aapui/gateway/aap"
 )
 
 type authorizeForm struct {
@@ -90,7 +90,7 @@ func ShowAuthorization(env *environment.State, route environment.Route) gin.Hand
         Challenge: consentChallenge,
         GrantScopes: requestedScopes,
       }
-      authorizationsAuthorizeResponse, _ := aap.Authorize(config.GetString("aapApi.public.url") + config.GetString("aapApi.public.endpoints.authorizationsAuthorize"), aapClient, authorizeRequest)
+      authorizationsAuthorizeResponse, _ := aap.Authorize(config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.authorizationsAuthorize"), aapClient, authorizeRequest)
       if  authorizationsAuthorizeResponse.Authorized {
         c.Redirect(302, authorizationsAuthorizeResponse.RedirectTo)
         c.Abort()
