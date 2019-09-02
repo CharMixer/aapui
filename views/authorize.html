@@ -21,6 +21,15 @@
     <p>Dear {{ .name }}</p>
     <p>The application {{ .client_id }} is requesting access to resources of yours. Please grant or deny them as you see fit.</p>
 
+    {{if .requested_audiences }}
+      <p>Using the following audiences</p>
+      <ul>
+      {{ range $key, $requested_audience := .requested_audiences }}
+        <li>{{ $requested_audience.aud }}</li>
+      {{ end }}
+      </ul>
+    {{end}}
+
     <div class="error">{{ .error }}</div>
 
     <form action="/authorize?consent_challenge={{ .consent_challenge }}" method="post">
