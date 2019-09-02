@@ -32,7 +32,9 @@
 
 <header class="header">
   <div class="header__search">Search...</div>
-  <div class="header__avatar">Your face</div>
+  <div class="header__avatar">
+    <img src="https://via.placeholder.com/150" class="circle" height="30px" />
+  </div>
 </header>
 {{ end }}
 
@@ -48,11 +50,16 @@
   </div>
 
   <ul class="sidenav__list">
-    <li class="sidenav__list-item">Item One</li>
-    <li class="sidenav__list-item">Item Two</li>
-    <li class="sidenav__list-item">Item Three</li>
-    <li class="sidenav__list-item">Item Four</li>
-    <li class="sidenav__list-item">Item Five</li>
+
+    <li class="sidenav__list-seperator">Identity</li>
+    <li class="sidenav__list-item"><a href="/profile">Profile</a></li>
+    <li class="sidenav__list-item"><a href="/organizations">Orgranizations</a></li>
+
+    <li class="sidenav__list-seperator">Access & Authorization</li>
+    <li class="sidenav__list-item"><a href="/authorizations">Authorizations</a></li>
+    <li class="sidenav__list-item"><a href="/permissions">Permissions</a></li>
+    <li class="sidenav__list-item"><a href="/roles">Roles</a></li>
+
   </ul>
   <div class="sidenav__close-icon">
     <i class="fas fa-times"></i>
