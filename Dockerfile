@@ -9,7 +9,7 @@ LABEL maintainer="Lasse Nielsen <65roed@gmail.com>"
 RUN apk add --update --no-cache ca-certificates cmake make g++ openssl-dev git curl pkgconfig
 
 # Set the Current Working Directory inside the container
-WORKDIR $GOPATH/src/aapui
+WORKDIR $GOPATH/src/github.com/charmixer/aapui
 
 # Copy everything from the current directory to the PWD(Present Working Directory) inside the container
 COPY . .
