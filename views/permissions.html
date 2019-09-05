@@ -1,0 +1,221 @@
+{{ template "htmlbegin" . }}
+
+<div class="grid-container">
+
+  {{ template "header" . }}
+
+  {{ template "sidenav" . }}
+
+  <main class="main">
+    <div class="main__header">
+      <div class="main-header__heading">Hello User</div>
+      <div class="main-header__updates">Recent Items</div>
+    </div>
+
+    <div class="main__overview">
+      <div class="overviewcard">
+        <div class="overviewcard__icon">Overview</div>
+        <div class="overviewcard__info">Card</div>
+      </div>
+      <div class="overviewcard">
+        <div class="overviewcard__icon">Overview</div>
+        <div class="overviewcard__info">Card</div>
+      </div>
+      <div class="overviewcard">
+        <div class="overviewcard__icon">Overview</div>
+        <div class="overviewcard__info">Card</div>
+      </div>
+      <div class="overviewcard">
+        <div class="overviewcard__icon">Overview</div>
+        <div class="overviewcard__info">Card</div>
+      </div>
+    </div>
+
+    <div class="main__cards">
+        <h1>{{ .title }}</h1>
+
+        <div class="ui segments">
+          <div class="ui segment">
+
+            <form method="post" action="/permissions">
+
+              <div class="content" style="overflow:hidden">
+                <img class="ui avatar mini image" src="https://via.placeholder.com/150" />
+                <span>You</span>
+
+                <button class="ui button right floated">
+                  Show access
+                </button>
+                <button class="ui button right floated">
+                  Show what I can give access to
+                </button>
+              </div>
+
+              <h2>Your access rights</h2>
+              <table class="ui compact celled definition table">
+                <thead>
+                  <tr>
+                    <th></th>
+                    <th>Scope</th>
+                    <th>Connected to</th>
+                    <th>Allow</th>
+                  </tr>
+                </thead>
+                <tbody>
+
+                  <tr>
+                    <td>Some role permissionSome identity permission</td>
+                    <td><a class="ui blue label">read:permission</a></td>
+                    <td><a class="ui blue label">Identity</a></td>
+                    <td class="collapsing">
+                      <div class="ui fitted slider checkbox">
+                        <input type="checkbox"> <label></label>
+                      </div>
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td>Some role permissionSome identity permission</td>
+                    <td><a class="ui blue label">read:permission</a></td>
+                    <td><a class="ui red label">Role A</a></td>
+                    <td class="collapsing">
+                      <div class="ui fitted slider checkbox">
+                        <input type="checkbox"> <label></label>
+                      </div>
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td>Some role permissionSome identity permission</td>
+                    <td><a class="ui blue label">read:permission</a></td>
+                    <td><a class="ui yellow label">Role B</a></td>
+                    <td class="collapsing">
+                      <div class="ui fitted slider checkbox">
+                        <input type="checkbox" disabled="disabled"> <label></label>
+                      </div>
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td>Some role permissionSome identity permission</td>
+                    <td><a class="ui blue label">read:permission</a></td>
+                    <td><a class="ui red label">Role A</a><a class="ui yellow label">Role B</a></td>
+                    <td class="collapsing">
+                      <div class="ui fitted slider checkbox">
+                        <input type="checkbox" disabled="disabled"> <label></label>
+                      </div>
+                    </td>
+                  </tr>
+
+                </tbody>
+                <tfoot class="full-width">
+                  <tr>
+                    <th colspan="4">
+                      <div class="ui right floated small primary labeled icon button">
+                        <i class="save icon"></i> Save
+                      </div>
+                    </th>
+                  </tr>
+                </tfoot>
+              </table>
+
+            </form>
+
+            <form>
+
+              <h2>Access rights you can give others</h2>
+              <table class="ui compact celled definition table">
+                <thead>
+                  <tr>
+                    <th></th>
+                    <th>Scope</th>
+                    <th>Connected to</th>
+                    <th>Allow</th>
+                  </tr>
+                </thead>
+                <tbody>
+
+                  <tr>
+                    <td>Some role permissionSome identity permission</td>
+                    <td><a class="ui blue label">read:permission</a></td>
+                    <td><a class="ui blue label">Identity</a></td>
+                    <td class="collapsing">
+                      <div class="ui fitted slider checkbox">
+                        <input type="checkbox"> <label></label>
+                      </div>
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td>Some role permissionSome identity permission</td>
+                    <td><a class="ui blue label">read:permission</a></td>
+                    <td><a class="ui red label">Role A</a></td>
+                    <td class="collapsing">
+                      <div class="ui fitted slider checkbox">
+                        <input type="checkbox"> <label></label>
+                      </div>
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td>Some role permissionSome identity permission</td>
+                    <td><a class="ui blue label">read:permission</a></td>
+                    <td><a class="ui yellow label">Role B</a></td>
+                    <td class="collapsing">
+                      <div class="ui fitted slider checkbox">
+                        <input type="checkbox" disabled="disabled"> <label></label>
+                      </div>
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td>Some role permissionSome identity permission</td>
+                    <td><a class="ui blue label">read:permission</a></td>
+                    <td><a class="ui red label">Role A</a><a class="ui yellow label">Role B</a></td>
+                    <td class="collapsing">
+                      <div class="ui fitted slider checkbox">
+                        <input type="checkbox" disabled="disabled"> <label></label>
+                      </div>
+                    </td>
+                  </tr>
+
+                </tbody>
+                <tfoot class="full-width">
+                  <tr>
+                    <th colspan="4">
+                      <button onclick="return confirm('Are you sure about that?')" class="ui right floated small red labeled icon button">
+                        <i class="save icon"></i> Save
+                      </button>
+                    </th>
+                  </tr>
+                </tfoot>
+              </table>
+
+            </form>
+
+          </div>
+          <div class="ui segment">
+            <img class="ui avatar mini image" src="https://via.placeholder.com/150" />
+            <span>Lasse</span>
+
+            <button class="ui button right floated">
+              Show access
+            </button>
+          </div>
+          <div class="ui segment">
+            <img class="ui avatar mini image" src="https://via.placeholder.com/150" />
+            <span>Marc</span>
+
+            <button class="ui button right floated">
+              Show access
+            </button>
+          </div>
+        </div>
+
+    </div>
+  </main>
+
+  {{ template "footer" . }}
+</div>
+
+{{ template "htmlend" . }}

@@ -1,4 +1,5 @@
 @charset "UTF-8";
+@import url("https://fonts.googleapis.com/css?family=Roboto&display=swap");
 html {
   background: url(/public/images/background.jpg) no-repeat center center fixed;
   -webkit-background-size: cover;
@@ -95,6 +96,7 @@ h1 {
   display: inline-block;
   font-size: 18pt;
   color: #FFF;
+  font-family: "Roboto", sans-serif;
 }
 
 .info {

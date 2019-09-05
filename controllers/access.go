@@ -16,8 +16,8 @@ func ShowAccess(env *environment.State, route environment.Route) gin.HandlerFunc
       "func": "ShowAccess",
     })
 
-    c.HTML(200, "access.html", gin.H{
-      "title": "Access",
+    c.HTML(200, "permissions.html", gin.H{
+      "title": "Permissions",
       csrf.TemplateTag: csrf.TemplateField(c.Request),
       "links": []map[string]string{
         {"href": "/public/css/dashboard.css"},
