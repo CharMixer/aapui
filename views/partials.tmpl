@@ -8,8 +8,7 @@
   <meta name="description" content="{{ .title }}">
   <meta name="author" content="CharMixer">
 
-  <link rel="stylesheet" type="text/css" href="/public/css/reset.css">
-  <link rel="stylesheet" type="text/css" href="/public/lib/fontawesome/css/all.css"> <!--load all styles -->
+  <link rel="stylesheet" type="text/css" href="/public/lib/semanticui/semantic.min.css"> <!--load all styles -->
   <link href="https://fonts.googleapis.com/css?family=Roboto&display=swap" rel="stylesheet">
 
   {{ range $value := .links }}
@@ -17,6 +16,7 @@
   {{ end }}
 
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script src="/public/lib/semanticui/semantic.min.js"></script>
   {{ range $value := .scripts }}
     <script type="{{ or $value.type "text/javascript" }}" src="{{ $value.src }}"></script>
   {{ end }}
@@ -45,8 +45,8 @@
   </div>
 
   <div class="sidenav__identity">
-    <img src="https://via.placeholder.com/150" class="circle" height="50px" />
-    <span class="name">Lasse Nielsen</span>
+    <img class="ui avatar mini image" src="https://via.placeholder.com/150" />
+    <span>Lasse Nielsen</span>
   </div>
 
   <ul class="sidenav__list">
