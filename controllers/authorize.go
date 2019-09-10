@@ -6,6 +6,7 @@ import (
   "github.com/sirupsen/logrus"
   "github.com/gin-gonic/gin"
   "github.com/gorilla/csrf"
+
   aap "github.com/charmixer/aap/client"
 
   "github.com/charmixer/aapui/config"
@@ -34,7 +35,7 @@ func ShowAuthorization(env *environment.State, route environment.Route) gin.Hand
       return
     }
 
-    aapClient := aap.NewAapApiClient(env.AapApiConfig)
+    aapClient := aap.NewAapClient(env.AapApiConfig)
 
     var authorizeRequest = aap.AuthorizeRequest{
       Challenge: consentChallenge,
@@ -166,7 +167,7 @@ func SubmitAuthorization(env *environment.State, route environment.Route) gin.Ha
 
     consentChallenge := c.Query("consent_challenge")
 
-    aapClient := aap.NewAapApiClient(env.AapApiConfig)
+    aapClient := aap.NewAapClient(env.AapApiConfig)
 
     if form.Accept != "" {
 
