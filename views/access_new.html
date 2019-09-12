@@ -1,0 +1,49 @@
+{{ template "htmlbegin" . }}
+
+<div class="grid-container">
+
+  {{ template "header" . }}
+
+  {{ template "sidenav" . }}
+
+  <main class="main">
+    <div class="main__header">
+      <div class="main-header__heading">Hello User</div>
+      <div class="main-header__updates">Recent Items</div>
+    </div>
+
+    <div class="main__cards">
+        <h1>{{ .title }}</h1>
+
+        <div class="ui segments">
+          <div class="ui segment">
+
+            <form method="post" action="/access/new" class="ui form">
+              {{ .csrfField }}
+
+              <div class="field">
+                <label>Title</label>
+                <input type="text" name="title" placeholder="Title">
+              </div>
+              <div class="field">
+                <label>Description</label>
+                <textarea rows="2" name="description" placeholder="Description"></textarea>
+              </div>
+              <div class="field">
+                <label>Scope</label>
+                <input type="text" name="scope" placeholder="scope">
+              </div>
+
+              <input type="submit" value="Create access right" class="ui button primary float right" tabindex="0"/>
+            </form>
+
+          </div>
+        </div>
+
+    </div>
+  </main>
+
+  {{ template "footer" . }}
+</div>
+
+{{ template "htmlend" . }}

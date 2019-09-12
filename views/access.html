@@ -124,10 +124,11 @@
             <form>
 
               <h2>Access rights you can give others</h2>
-              <table class="ui compact celled definition table">
+              <table class="ui compact celled table">
                 <thead>
                   <tr>
-                    <th></th>
+                    <th>Title</th>
+                    <th>Description</th>
                     <th>Scope</th>
                     <th>Connected to</th>
                     <th>Allow</th>
@@ -136,6 +137,7 @@
                 <tbody>
 
                   <tr>
+                    <td>Some role permissionSome identity permission</td>
                     <td>Some role permissionSome identity permission</td>
                     <td><a class="ui blue label">read:permission</a></td>
                     <td><a class="ui blue label">Identity</a></td>
@@ -148,6 +150,7 @@
 
                   <tr>
                     <td>Some role permissionSome identity permission</td>
+                    <td>Some role permissionSome identity permission</td>
                     <td><a class="ui blue label">read:permission</a></td>
                     <td><a class="ui red label">Role A</a></td>
                     <td class="collapsing">
@@ -159,19 +162,9 @@
 
                   <tr>
                     <td>Some role permissionSome identity permission</td>
-                    <td><a class="ui blue label">read:permission</a></td>
-                    <td><a class="ui yellow label">Role B</a></td>
-                    <td class="collapsing">
-                      <div class="ui fitted slider checkbox">
-                        <input type="checkbox" disabled="disabled"> <label></label>
-                      </div>
-                    </td>
-                  </tr>
-
-                  <tr>
                     <td>Some role permissionSome identity permission</td>
                     <td><a class="ui blue label">read:permission</a></td>
-                    <td><a class="ui red label">Role A</a><a class="ui yellow label">Role B</a></td>
+                    <td><a class="ui yellow label">Role B</a></td>
                     <td class="collapsing">
                       <div class="ui fitted slider checkbox">
                         <input type="checkbox" disabled="disabled"> <label></label>
@@ -182,7 +175,7 @@
                 </tbody>
                 <tfoot class="full-width">
                   <tr>
-                    <th colspan="4">
+                    <th colspan="5">
                       <button onclick="return confirm('Are you sure about that?')" class="ui right floated small red labeled icon button">
                         <i class="save icon"></i> Save
                       </button>
@@ -191,6 +184,29 @@
                 </tfoot>
               </table>
 
+            </form>
+
+            <h2>Create new access right</h2>
+
+            <form method="post" action="/access">
+              <div class="ui form">
+                <div class="three fields">
+                  <div class="field">
+                    <label>Title</label>
+                    <input type="text" placeholder="Title">
+                  </div>
+                  <div class="field">
+                    <label>Description</label>
+                    <input type="text" placeholder="Description">
+                  </div>
+                  <div class="field">
+                    <label>Scope</label>
+                    <input type="text" placeholder="scope">
+                  </div>
+                </div>
+
+                <div class="ui button primary float right" tabindex="0">Create access right</div>
+              </div>
             </form>
 
           </div>
