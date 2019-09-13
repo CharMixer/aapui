@@ -5,6 +5,9 @@ import (
   "github.com/sirupsen/logrus"
   "github.com/gin-gonic/gin"
   "github.com/gorilla/csrf"
+  "github.com/gin-contrib/sessions"
+  "golang.org/x/oauth2"
+  oidc "github.com/coreos/go-oidc"
 
   aap "github.com/charmixer/aap/client"
 
@@ -12,7 +15,7 @@ import (
   "github.com/charmixer/aapui/environment"
 )
 
-type NewAccessForm struct {
+type newAccessForm struct {
   Scope string `form:"scope" binding:"required"`
   Title string `form:"title" binding:"required"`
   Description string `form:"description" binding:"required"`
@@ -64,21 +67,42 @@ func SubmitAccessNew(env *environment.State, route environment.Route) gin.Handle
       "func": "ShowAccess",
     })
 
-    var form NewAccessForm
-    c.Bind(&form)
+    var form newAccessForm
+    err := c.Bind(&form)
+    if err != nil {
+      c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+      c.Abort()
+      return
+    }
 
-    aapClient := aap.NewAapClient(env.AapApiConfig)
+    session := sessions.Default(c)
+
+    // NOTE: Maybe session is not a good way to do this.
+    // 1. The user access /me with a browser and the access token / id token is stored in a session as we cannot make the browser redirect with Authentication: Bearer <token>
+    // 2. The user is using something that supplies the access token and id token directly in the headers. (aka. no need for the session)
+    var idToken *oidc.IDToken
+    idToken = session.Get(environment.SessionIdTokenKey).(*oidc.IDToken)
+    if idToken == nil {
+      c.HTML(http.StatusNotFound, "profile.html", gin.H{"error": "Identity not found"})
+      c.Abort()
+      return
+    }
+
+    var accessToken *oauth2.Token
+    accessToken = session.Get(environment.SessionTokenKey).(*oauth2.Token)
+    aapClient := aap.NewAapClientWithUserAccessToken(env.HydraConfig, accessToken)
 
     var createScopesRequest = aap.CreateScopesRequest{
       Scope: form.Scope,
       Title: form.Title,
       Description: form.Description,
-      CreatedByIdentityId: "34be04a8-6c73-48af-be48-b6cf4b4cdcb3",
+      CreatedByIdentityId: idToken.Subject,
     }
 
     url := config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.scopes")
 
-    _, err := aap.CreateScopes(url, aapClient, createScopesRequest)
+    createdScopeResponse, err := aap.CreateScopes(url, aapClient, createScopesRequest)
+    log.Println(createdScopeResponse)
 
     if err != nil {
       log.Println("Failed to call POST " + url)
