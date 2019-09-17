@@ -16,8 +16,8 @@ import (
 )
 
 type newAccessForm struct {
-  Scope string `form:"scope" binding:"required"`
-  Title string `form:"title" binding:"required"`
+  Scope       string `form:"scope" binding:"required"`
+  Title       string `form:"title" binding:"required"`
   Description string `form:"description" binding:"required"`
 }
 
@@ -28,6 +28,30 @@ func ShowAccess(env *environment.State, route environment.Route) gin.HandlerFunc
     log = log.WithFields(logrus.Fields{
       "func": "ShowAccess",
     })
+
+    session := sessions.Default(c)
+
+    // NOTE: Maybe session is not a good way to do this.
+    // 1. The user access /me with a browser and the access token / id token is stored in a session as we cannot make the browser redirect with Authentication: Bearer <token>
+    // 2. The user is using something that supplies the access token and id token directly in the headers. (aka. no need for the session)
+    var idToken *oidc.IDToken
+    idToken = session.Get(environment.SessionIdTokenKey).(*oidc.IDToken)
+    if idToken == nil {
+      c.HTML(http.StatusNotFound, "access_new.html", gin.H{"error": "Identity not found"})
+      c.Abort()
+      return
+    }
+
+    var accessToken *oauth2.Token
+    accessToken = session.Get(environment.SessionTokenKey).(*oauth2.Token)
+    aapClient := aap.NewAapClientWithUserAccessToken(env.HydraConfig, accessToken)
+
+    var readScopesRequests []aap.ReadScopesRequest
+    readScopesRequests = append(readScopesRequests, aap.ReadScopesRequest{})
+
+    url := config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.scopes")
+    readScopesResponse, _ := aap.ReadScopes(url, aapClient, readScopesRequests)
+    log.Println(readScopesResponse)
 
     c.HTML(200, "access.html", gin.H{
       "title": "Access",
@@ -83,7 +107,7 @@ func SubmitAccessNew(env *environment.State, route environment.Route) gin.Handle
     var idToken *oidc.IDToken
     idToken = session.Get(environment.SessionIdTokenKey).(*oidc.IDToken)
     if idToken == nil {
-      c.HTML(http.StatusNotFound, "profile.html", gin.H{"error": "Identity not found"})
+      c.HTML(http.StatusNotFound, "access_new.html", gin.H{"error": "Identity not found"})
       c.Abort()
       return
     }
@@ -93,10 +117,10 @@ func SubmitAccessNew(env *environment.State, route environment.Route) gin.Handle
     aapClient := aap.NewAapClientWithUserAccessToken(env.HydraConfig, accessToken)
 
     var createScopesRequest = aap.CreateScopesRequest{
-      Scope: form.Scope,
-      Title: form.Title,
-      Description: form.Description,
-      CreatedByIdentityId: idToken.Subject,
+      Scope:               form.Scope,
+      Title:               form.Title,
+      Description:         form.Description,
+      //CreatedByIdentityId: idToken.Subject,
     }
 
     url := config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.scopes")
