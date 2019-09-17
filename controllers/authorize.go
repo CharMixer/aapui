@@ -15,8 +15,8 @@ import (
 
 type authorizeForm struct {
     Consents []string `form:"consents[]"`
-    Accept string `form:"accept"`
-    Cancel string `form:"cancel"`
+    Accept   string   `form:"accept"`
+    Cancel   string   `form:"cancel"`
 }
 
 func ShowAuthorization(env *environment.State, route environment.Route) gin.HandlerFunc {

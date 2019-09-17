@@ -19,7 +19,7 @@ COPY . .
 RUN go get -d -v ./...
 
 # Development requires fresh
-RUN go get github.com/pilu/fresh
+RUN go get -v github.com/pilu/fresh
 
 # Install the package
 #RUN go install -v ./...
