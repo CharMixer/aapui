@@ -46,11 +46,11 @@ func ShowAccess(env *environment.State, route environment.Route) gin.HandlerFunc
     accessToken = session.Get(environment.SessionTokenKey).(*oauth2.Token)
     aapClient := aap.NewAapClientWithUserAccessToken(env.HydraConfig, accessToken)
 
-    var readScopesRequests []aap.ReadScopesRequest
-    readScopesRequests = append(readScopesRequests, aap.ReadScopesRequest{})
+    //var readScopesRequests []aap.ReadScopesRequest
+    //readScopesRequests = append(readScopesRequests, aap.ReadScopesRequest{})
 
     url := config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.scopes")
-    readScopesResponse, _ := aap.ReadScopes(url, aapClient, readScopesRequests)
+    readScopesResponse, _ := aap.ReadScopes(url, aapClient, nil)
     log.Println(readScopesResponse)
 
     c.HTML(200, "access.html", gin.H{
