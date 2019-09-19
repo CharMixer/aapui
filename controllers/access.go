@@ -46,15 +46,13 @@ func ShowAccess(env *environment.State, route environment.Route) gin.HandlerFunc
     accessToken = session.Get(environment.SessionTokenKey).(*oauth2.Token)
     aapClient := aap.NewAapClientWithUserAccessToken(env.HydraConfig, accessToken)
 
-    //var readScopesRequests []aap.ReadScopesRequest
-    //readScopesRequests = append(readScopesRequests, aap.ReadScopesRequest{})
-
     url := config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.scopes")
-    readScopesResponse, _ := aap.ReadScopes(url, aapClient, nil)
+    readScopesResponse, _ := aap.ReadScopes(url, aapClient, []aap.ReadScopesRequest{aap.ReadScopesRequest{Scope: "openid"}})
     log.Println(readScopesResponse)
 
     c.HTML(200, "access.html", gin.H{
       "title": "Access",
+      "scopes": readScopesResponse,
       csrf.TemplateTag: csrf.TemplateField(c.Request),
       "links": []map[string]string{
         {"href": "/public/css/dashboard.css"},
@@ -116,16 +114,16 @@ func SubmitAccessNew(env *environment.State, route environment.Route) gin.Handle
     accessToken = session.Get(environment.SessionTokenKey).(*oauth2.Token)
     aapClient := aap.NewAapClientWithUserAccessToken(env.HydraConfig, accessToken)
 
-    var createScopesRequest = aap.CreateScopesRequest{
+    var createScopesRequests []aap.CreateScopesRequest
+    createScopesRequests = append(createScopesRequests, aap.CreateScopesRequest{
       Scope:               form.Scope,
       Title:               form.Title,
       Description:         form.Description,
-      //CreatedByIdentityId: idToken.Subject,
-    }
+    })
 
     url := config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.scopes")
 
-    createdScopeResponse, err := aap.CreateScopes(url, aapClient, createScopesRequest)
+    createdScopeResponse, err := aap.CreateScopes(url, aapClient, createScopesRequests)
     log.Println(createdScopeResponse)
 
     if err != nil {

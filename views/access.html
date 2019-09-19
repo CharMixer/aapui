@@ -12,27 +12,14 @@
       <div class="main-header__updates">Recent Items</div>
     </div>
 
-    <div class="main__overview">
-      <div class="overviewcard">
-        <div class="overviewcard__icon">Overview</div>
-        <div class="overviewcard__info">Card</div>
-      </div>
-      <div class="overviewcard">
-        <div class="overviewcard__icon">Overview</div>
-        <div class="overviewcard__info">Card</div>
-      </div>
-      <div class="overviewcard">
-        <div class="overviewcard__icon">Overview</div>
-        <div class="overviewcard__info">Card</div>
-      </div>
-      <div class="overviewcard">
-        <div class="overviewcard__icon">Overview</div>
-        <div class="overviewcard__info">Card</div>
-      </div>
-    </div>
-
     <div class="main__cards">
         <h1>{{ .title }}</h1>
+
+        <h3>Available scopes</h3>
+        {{ range $key, $scope := .scopes }}
+          <a class="ui blue label" style="margin-top:5px" data-tooltip="{{ $scope.Title }}">{{ $scope.Scope }}</a>
+        {{ end }}
+        <a href="/access/new" style="margin-top:5px" class="ui green label"><i class="plus icon"></i> Create scope</a>
 
         <div class="ui segments">
           <div class="ui segment">
