@@ -201,7 +201,7 @@ func SubmitAuthorization(env *environment.State, route environment.Route) gin.Ha
       if err != nil {
         log.Debug(err.Error())
         log.WithFields(logrus.Fields{"fixme": 1}).Debug("Signal errors to the authorization controller using session flash messages")
-        c.Redirect(302, "/authorize?consent_challenge=" + consentChallenge)
+        c.Redirect(http.StatusFound, "/authorize?consent_challenge=" + consentChallenge)
         c.Abort()
         return
       }
@@ -213,7 +213,7 @@ func SubmitAuthorization(env *environment.State, route environment.Route) gin.Ha
       }
       authorizationsAuthorizeResponse, _ := aap.Authorize(config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.authorizationsAuthorize"), aapClient, authorizeRequest)
       if  authorizationsAuthorizeResponse.Authorized {
-        c.Redirect(302, authorizationsAuthorizeResponse.RedirectTo)
+        c.Redirect(http.StatusFound, authorizationsAuthorizeResponse.RedirectTo)
         c.Abort()
         return
       }
@@ -224,7 +224,7 @@ func SubmitAuthorization(env *environment.State, route environment.Route) gin.Ha
       Challenge: consentChallenge,
     }
     rejectResponse, _ := aap.Reject(config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.authorizationsReject"), aapClient, rejectRequest)
-    c.Redirect(302, rejectResponse.RedirectTo)
+    c.Redirect(http.StatusFound, rejectResponse.RedirectTo)
     c.Abort()
   }
   return gin.HandlerFunc(fn)
