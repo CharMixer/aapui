@@ -48,11 +48,20 @@ func ShowAccess(env *environment.State, route environment.Route) gin.HandlerFunc
 
     url := config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.scopes")
     readScopesResponse, _ := aap.ReadScopes(url, aapClient, nil)
-    //readScopesResponse, _ := aap.ReadScopes(url, aapClient, []aap.ReadScopesRequest{aap.ReadScopesRequest{}})
+    //readScopesResponse, _ := aap.ReadScopes(url, aapClient, []aap.ReadScopesRequest{aap.ReadScopesRequest{Scope: ""},aap.ReadScopesRequest{Scope: "openid"}})
+
+
+    _, ok, restErr := aap.UnmarshalResponse(0, readScopesResponse)
+    if restErr != nil {
+      for _,e := range restErr {
+        // TODO show user somehow
+        log.Println("Rest error: " + e.Error)
+      }
+    }
 
     c.HTML(200, "access.html", gin.H{
       "title": "Access",
-      "scopes": readScopesResponse[0],
+      "scopes": ok,
       csrf.TemplateTag: csrf.TemplateField(c.Request),
       "links": []map[string]string{
         {"href": "/public/css/dashboard.css"},
@@ -61,6 +70,7 @@ func ShowAccess(env *environment.State, route environment.Route) gin.HandlerFunc
   }
   return gin.HandlerFunc(fn)
 }
+
 
 func ShowAccessNew(env *environment.State, route environment.Route) gin.HandlerFunc {
   fn := func(c *gin.Context) {
