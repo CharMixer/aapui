@@ -18,6 +18,11 @@
         <div class="ui segments">
           <div class="ui segment">
 
+            {{if .errors }}
+              {{ range $key, $error := .errors }}
+              <p>{{ $error.Error }}</p>
+              {{ end }}
+            {{ end }}
             <form method="post" action="/access/new" class="ui form">
               {{ .csrfField }}
 
