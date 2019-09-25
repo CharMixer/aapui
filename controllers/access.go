@@ -48,8 +48,7 @@ func ShowAccess(env *environment.State, route environment.Route) gin.HandlerFunc
 
     url := config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.scopes")
     readScopesResponse, _ := aap.ReadScopes(url, aapClient, nil)
-    //readScopesResponse, _ := aap.ReadScopes(url, aapClient, []aap.ReadScopesRequest{aap.ReadScopesRequest{Scope: ""},aap.ReadScopesRequest{Scope: "openid"}})
-
+    //readScopesResponse, _ := aap.ReadScopes(url, aapClient, []aap.ReadScopesRequest{{Scope: ""},{Scope: "openid"}})
 
     _, ok, restErr := aap.UnmarshalResponse(0, readScopesResponse)
     if restErr != nil {
@@ -133,15 +132,13 @@ func SubmitAccessNew(env *environment.State, route environment.Route) gin.Handle
 
     url := config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.scopes")
 
-    createdScopeResponse, err := aap.CreateScopes(url, aapClient, createScopesRequests)
-    log.Println(createdScopeResponse)
+    createdScopesResponse, err := aap.CreateScopes(url, aapClient, createScopesRequests)
+    _, _, restErr := aap.UnmarshalResponse(0, createdScopesResponse)
 
-    if err != nil {
-      log.Println("Failed to call POST " + url)
-      log.Println(err)
-
-      c.HTML(http.StatusInternalServerError, "access_new.html", gin.H{
-        "error": err.Error(),
+    if restErr != nil {
+      c.HTML(http.StatusOK, "access_new.html", gin.H{
+        "title": "Create new access right",
+        "errors": restErr,
         "links": []map[string]string{
           {"href": "/public/css/dashboard.css"},
         },
@@ -149,8 +146,6 @@ func SubmitAccessNew(env *environment.State, route environment.Route) gin.Handle
       c.Abort()
       return
     }
-
-    log.Println("Successfully called POST " + url)
 
     c.Redirect(http.StatusMovedPermanently, "/access")
     c.Abort()
