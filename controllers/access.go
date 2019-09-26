@@ -48,7 +48,7 @@ func ShowAccess(env *environment.State, route environment.Route) gin.HandlerFunc
 
     url := config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.scopes")
     readScopesResponse, _ := aap.ReadScopes(url, aapClient, nil)
-    //readScopesResponse, _ := aap.ReadScopes(url, aapClient, []aap.ReadScopesRequest{{Scope: ""},{Scope: "openid"}})
+    //readScopesResponse, _ := aap.ReadScopes(url, aapClient, []aap.ReadScopesRequest{{Scope: "openid"}})
 
     _, ok, restErr := aap.UnmarshalResponse(0, readScopesResponse)
     if restErr != nil {
@@ -147,7 +147,7 @@ func SubmitAccessNew(env *environment.State, route environment.Route) gin.Handle
       return
     }
 
-    c.Redirect(http.StatusMovedPermanently, "/access")
+    c.Redirect(http.StatusFound, "/access")
     c.Abort()
   }
   return gin.HandlerFunc(fn)

@@ -18,11 +18,6 @@
         <div class="ui segments">
           <div class="ui segment">
 
-            {{if .errors }}
-              {{ range $key, $error := .errors }}
-              <p>{{ $error.Error }}</p>
-              {{ end }}
-            {{ end }}
             <form method="post" action="/access/new" class="ui form">
               {{ .csrfField }}
 
@@ -41,6 +36,12 @@
 
               <input type="submit" value="Create access right" class="ui button primary float right" tabindex="0"/>
             </form>
+
+            {{if .errors }}
+              {{ range $key, $error := .errors }}
+              <p>{{ $error.Error }}</p>
+              {{ end }}
+            {{ end }}
 
           </div>
         </div>
