@@ -15,13 +15,14 @@ import (
   "github.com/charmixer/aapui/environment"
 )
 
-type newAccessForm struct {
-  Scope       string `form:"scope" binding:"required"`
-  Title       string `form:"title" binding:"required"`
-  Description string `form:"description" binding:"required"`
+type grantsForm struct {
+  Scope         string `form:"scope" binding:"required"`
+  PublisherId   string `form:"publisher_id" binding:"required"`
+  GrantedId     string `form:"granted_id" binding:"required"`
+  GranterId     string `form:"granter_id" binding:"required"`
 }
 
-func ShowAccess(env *environment.State, route environment.Route) gin.HandlerFunc {
+func ShowGrants(env *environment.State, route environment.Route) gin.HandlerFunc {
   fn := func(c *gin.Context) {
 
     log := c.MustGet(environment.LogKey).(*logrus.Entry)
@@ -37,7 +38,7 @@ func ShowAccess(env *environment.State, route environment.Route) gin.HandlerFunc
     var idToken *oidc.IDToken
     idToken = session.Get(environment.SessionIdTokenKey).(*oidc.IDToken)
     if idToken == nil {
-      c.HTML(http.StatusNotFound, "access_new.html", gin.H{"error": "Identity not found"})
+      c.HTML(http.StatusNotFound, "grants.html", gin.H{"error": "Identity not found"})
       c.Abort()
       return
     }
@@ -46,51 +47,81 @@ func ShowAccess(env *environment.State, route environment.Route) gin.HandlerFunc
     accessToken = session.Get(environment.SessionTokenKey).(*oauth2.Token)
     aapClient := aap.NewAapClientWithUserAccessToken(env.HydraConfig, accessToken)
 
-    url := config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.scopes")
-    _, readScopesResponse, _ := aap.ReadScopes(url, aapClient, nil)
-    //readScopesResponse, _ := aap.ReadScopes(url, aapClient, []aap.ReadScopesRequest{{Scope: "openid"}})
+    url := config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.grants")
 
-    _, ok, restErr := aap.UnmarshalResponse(0, readScopesResponse)
-    if restErr != nil {
-      for _,e := range restErr {
-        // TODO show user somehow
-        log.Println("Rest error: " + e.Error)
-      }
+    idprs := "1b8761b4-876e-4e5e-aaea-a756ef4520a2"
+    aaprs := "39a04c64-9f33-4062-bb74-90ec8d05346c"
+
+    status, createGrantsResponse, err := aap.CreateGrants(url, aapClient, []aap.CreateGrantsRequest{
+      {Scope:"openid", PublishedBy: idprs},
+      {Scope:"offline", PublishedBy: idprs},
+      {Scope:"logout:identity", PublishedBy: idprs},
+      {Scope:"recover:identity", PublishedBy: idprs},
+
+      {Scope:"openid", PublishedBy: aaprs},
+      {Scope:"offline", PublishedBy: aaprs},
+    })
+
+    if err != nil {
+      c.AbortWithStatus(404)
+      log.Debug(err.Error())
+      return
     }
 
-    c.HTML(200, "access.html", gin.H{
-      "title": "Access",
-      "scopes": ok,
-      csrf.TemplateTag: csrf.TemplateField(c.Request),
-      "links": []map[string]string{
-        {"href": "/public/css/dashboard.css"},
-      },
-    })
+    if status == 200 {
+      _, ok, restErr := aap.UnmarshalResponse(0, createGrantsResponse)
+      if restErr != nil {
+        for _,e := range restErr {
+          // TODO show user somehow
+          log.Debug("Rest error: " + e.Error)
+        }
+      }
+
+      c.HTML(200, "grants.html", gin.H{
+        "title": "Grants",
+        "scopes": ok,
+        csrf.TemplateTag: csrf.TemplateField(c.Request),
+        "links": []map[string]string{
+          {"href": "/public/css/dashboard.css"},
+        },
+      })
+    }
+
+
+    //url := config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.grants")
+    //status, readGrantsResponse, err := aap.ReadGrants(url, aapClient, nil)
+
+    //if err != nil {
+      //c.AbortWithStatus(404)
+      //log.Debug(err.Error())
+      //return
+    //}
+
+    //if status == 200 {
+      //_, ok, restErr := aap.UnmarshalResponse(0, readGrantsResponse)
+      //if restErr != nil {
+        //for _,e := range restErr {
+          //// TODO show user somehow
+          //log.Debug("Rest error: " + e.Error)
+        //}
+      //}
+
+      //c.HTML(200, "grants.html", gin.H{
+        //"title": "Grants",
+        //"scopes": ok,
+        //csrf.TemplateTag: csrf.TemplateField(c.Request),
+        //"links": []map[string]string{
+          //{"href": "/public/css/dashboard.css"},
+        //},
+      //})
+    //}
+
+    c.AbortWithStatus(404)
   }
   return gin.HandlerFunc(fn)
 }
 
-
-func ShowAccessNew(env *environment.State, route environment.Route) gin.HandlerFunc {
-  fn := func(c *gin.Context) {
-
-    log := c.MustGet(environment.LogKey).(*logrus.Entry)
-    log = log.WithFields(logrus.Fields{
-      "func": "ShowAccessNew",
-    })
-
-    c.HTML(200, "access_new.html", gin.H{
-      "title": "Create new access right",
-      csrf.TemplateTag: csrf.TemplateField(c.Request),
-      "links": []map[string]string{
-        {"href": "/public/css/dashboard.css"},
-      },
-    })
-  }
-  return gin.HandlerFunc(fn)
-}
-
-func SubmitAccessNew(env *environment.State, route environment.Route) gin.HandlerFunc {
+func SubmitGrants(env *environment.State, route environment.Route) gin.HandlerFunc {
   fn := func(c *gin.Context) {
 
     log := c.MustGet(environment.LogKey).(*logrus.Entry)

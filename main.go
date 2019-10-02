@@ -128,13 +128,14 @@ func main() {
 func serve(env *environment.State) {
   // Setup routes to use, this defines log for debug log
   routes := map[string]environment.Route{
-    "/":          environment.Route{URL: "/",          LogId: "aapui://"},
-    "/authorize": environment.Route{URL: "/authorize", LogId: "aapui://authorize"},
-    "/dashboard": environment.Route{URL: "/dashboard", LogId: "aapui://dashboard"},
+    "/":               environment.Route{URL: "/",               LogId: "aapui://"},
+    "/authorize":      environment.Route{URL: "/authorize",      LogId: "aapui://authorize"},
+    "/dashboard":      environment.Route{URL: "/dashboard",      LogId: "aapui://dashboard"},
     "/authorizations": environment.Route{URL: "/authorizations", LogId: "aapui://authorizations"},
-    "/access": environment.Route{URL: "/access", LogId: "aapui://access"},
-    "/access/new": environment.Route{URL: "/access/new", LogId: "aapui://access/new"},
-    "/callback":   environment.Route{URL: "/callback", LogId: "aapui://callback"},
+    "/access":         environment.Route{URL: "/access",         LogId: "aapui://access"},
+    "/access/new":     environment.Route{URL: "/access/new",     LogId: "aapui://access/new"},
+    "/access/grant":   environment.Route{URL: "/access/grant",   LogId: "aapui://access/grant"},
+    "/callback":       environment.Route{URL: "/callback",       LogId: "aapui://callback"},
   }
 
   r := gin.New() // Clean gin to take control with logging.
@@ -160,26 +161,26 @@ func serve(env *environment.State) {
   r.Static("/public", "public")
   r.LoadHTMLGlob("views/*")
 
-
   ep := r.Group("/")
   ep.Use(adapterCSRF)
   {
     // FIXME: Should these endpoints be protected? aka requiring authentication before access?
-    ep.GET(routes["/"].URL, controllers.ShowAuthorization(env, routes["/"]))
+    ep.GET(routes["/"].URL,               controllers.ShowAuthorization(env,                 routes["/"]))
 
-    ep.GET(routes["/callback"].URL, controllers.ExchangeAuthorizationCodeCallback(env, routes["/callback"])) // token exhange endpoint.
+    ep.GET(routes["/callback"].URL,       controllers.ExchangeAuthorizationCodeCallback(env, routes["/callback"]))    // token exhange endpoint.
 
-    ep.GET(routes["/authorize"].URL, controllers.ShowAuthorization(env, routes["/authorize"]))
-    ep.POST(routes["/authorize"].URL, controllers.SubmitAuthorization(env, routes["/authorize"]))
+    ep.GET(routes["/authorize"].URL,      controllers.ShowAuthorization(env,                 routes["/authorize"]))
+    ep.POST(routes["/authorize"].URL,     controllers.SubmitAuthorization(env,               routes["/authorize"]))
 
-    ep.GET(routes["/dashboard"].URL, AuthenticationAndAuthorizationRequired(env, routes["/dashboard"], "openid"), controllers.ShowDashboard(env, routes["/dashboard"]))
-    ep.GET(routes["/authorizations"].URL, AuthenticationAndAuthorizationRequired(env, routes["/dashboard"], "openid"), controllers.ShowAuthorizations(env, routes["/authorizations"]))
+    ep.GET(routes["/dashboard"].URL,      AuthenticationAndAuthorizationRequired(env,        routes["/dashboard"],    "openid"), controllers.ShowDashboard(env,      routes["/dashboard"]))
+    ep.GET(routes["/authorizations"].URL, AuthenticationAndAuthorizationRequired(env,        routes["/dashboard"],    "openid"), controllers.ShowAuthorizations(env, routes["/authorizations"]))
 
-    ep.GET(routes["/access"].URL, AuthenticationAndAuthorizationRequired(env, routes["/access"], "openid"), controllers.ShowAccess(env, routes["/access"]))
+    ep.GET(routes["/access"].URL,         AuthenticationAndAuthorizationRequired(env,        routes["/access"],       "openid"), controllers.ShowAccess(env,         routes["/access"]))
+    ep.GET(routes["/access/grant"].URL,   AuthenticationAndAuthorizationRequired(env,        routes["/access/grant"], "openid"), controllers.ShowGrants(env,         routes["/access/grant"]))
+    ep.POST(routes["/access/grant"].URL,  AuthenticationAndAuthorizationRequired(env,        routes["/access/grant"], "openid"), controllers.SubmitGrants(env,       routes["/access/grant"]))
 
-    ep.GET(routes["/access/new"].URL, AuthenticationAndAuthorizationRequired(env, routes["/access/new"], "openid"), controllers.ShowAccessNew(env, routes["/access/new"]))
-    ep.POST(routes["/access/new"].URL, AuthenticationAndAuthorizationRequired(env, routes["/access/new"], "openid"), controllers.SubmitAccessNew(env, routes["/access/new"]))
-
+    ep.GET(routes["/access/new"].URL,     AuthenticationAndAuthorizationRequired(env,        routes["/access/new"],   "openid"), controllers.ShowAccessNew(env,      routes["/access/new"]))
+    ep.POST(routes["/access/new"].URL,    AuthenticationAndAuthorizationRequired(env,        routes["/access/new"],   "openid"), controllers.SubmitAccessNew(env,    routes["/access/new"]))
   }
 
   r.RunTLS(":" + config.GetString("serve.public.port"), config.GetString("serve.tls.cert.path"), config.GetString("serve.tls.key.path"))
