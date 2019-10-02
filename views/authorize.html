@@ -6,6 +6,7 @@
   <meta name="description" content="Authorization">
   <meta name="author" content="Company">
 
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
   <link rel="stylesheet" type="text/css" href="/public/css/main.css">
 
 </head>
@@ -36,6 +37,9 @@
       {{ .csrfField }}
 
       {{if .requested_scopes }}
+        <input type="checkbox" id="consent_all">
+        <label for="consent_all">Accept all</label>
+
         {{ range $key, $scope := .requested_scopes }}
           <input type="checkbox" id="consent_requested_{{ $key }}" name="consents[]" value="{{ $scope.name }}">
           <label for="consent_requested_{{ $key }}">{{ $scope.name }}</label>
@@ -56,5 +60,11 @@
 
   </div>
 
-  <script type="text/javascript"></script>
+  <script type="text/javascript">
+    $(document).ready(function(){
+      $("#consent_all").click(function(){
+        $("input[id^=consent_requested_]").prop('checked', this.checked);
+      });
+    });
+  </script>
 </body>
