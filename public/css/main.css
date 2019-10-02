@@ -6,12 +6,12 @@ html {
   -moz-background-size: cover;
   -o-background-size: cover;
   background-size: cover;
+  height:100%;
 }
 
 body {
   background: rgba(41, 128, 185, 0.8);
-  width: 100%;
-  height: 100%;
+  min-height: 100%;
   padding: 0;
   margin: 0;
 }
