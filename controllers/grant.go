@@ -47,10 +47,12 @@ func ShowGrants(env *environment.State, route environment.Route) gin.HandlerFunc
     accessToken = session.Get(environment.SessionTokenKey).(*oauth2.Token)
     aapClient := aap.NewAapClientWithUserAccessToken(env.HydraConfig, accessToken)
 
-    url := config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.grants")
 
+    // fetch grants
+
+    url := config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.grants")
     //status, readGrantsResponse, err := aap.ReadGrants(url, aapClient, nil /*[]aap.ReadGrantsRequest{}*/)
-    status, readGrantsResponse, err := aap.ReadGrants(url, aapClient, []aap.ReadGrantsRequest{
+    _, readGrantsResponse, err := aap.ReadGrants(url, aapClient, []aap.ReadGrantsRequest{
       //{Scope: "openid"},
       {Scope: "openid", PublishedBy:"74ac5-4a3f-441f-9ed9-b8e3e9b1f13c"},
       {Scope: "openid", PublishedBy:"14874ac5-4a3f-441f-9ed9-b8e3e9b1f13c"},
@@ -64,26 +66,50 @@ func ShowGrants(env *environment.State, route environment.Route) gin.HandlerFunc
       return
     }
 
-    if status == 200 {
-      _, ok, restErr := aap.UnmarshalResponse(0, readGrantsResponse)
-      if restErr != nil {
-        for _,e := range restErr {
-          // TODO show user somehow
-          log.Debug("Rest error: " + e.Error)
-        }
+    _, grants, restErr := aap.UnmarshalResponse(0, readGrantsResponse)
+    if len(restErr) > 0 {
+      for _,e := range restErr {
+        // TODO show user somehow
+        log.Debug("Rest error: " + e.Error)
       }
 
-      c.HTML(200, "grants.html", gin.H{
-        "title": "Grants",
-        "scopes": ok,
-        csrf.TemplateTag: csrf.TemplateField(c.Request),
-        "links": []map[string]string{
-          {"href": "/public/css/dashboard.css"},
-        },
-      })
+      c.AbortWithStatus(404)
+      return
     }
 
-    c.AbortWithStatus(404)
+    // fetch scopes
+
+    url = config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.scopes")
+    _, readScopesResponse, err := aap.ReadScopes(url, aapClient, nil)
+
+    if err != nil {
+      c.AbortWithStatus(404)
+      log.Debug(err.Error())
+      return
+    }
+
+    _, scopes, restErr := aap.UnmarshalResponse(0, readScopesResponse)
+    if len(restErr) > 0 {
+      log.Debug(restErr)
+      for _,e := range restErr {
+        // TODO show user somehow
+        log.Debug("Rest error: " + e.Error)
+      }
+
+      c.AbortWithStatus(404)
+      return
+    }
+
+    c.HTML(200, "grants.html", gin.H{
+      "title": "Grants",
+      "grants": grants,
+      "scopes": scopes,
+      csrf.TemplateTag: csrf.TemplateField(c.Request),
+      "links": []map[string]string{
+        {"href": "/public/css/dashboard.css"},
+      },
+    })
+
   }
   return gin.HandlerFunc(fn)
 }
@@ -114,8 +140,8 @@ func SubmitGrants(env *environment.State, route environment.Route) gin.HandlerFu
 
     url := config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.grants")
 
-    idprs := "14874ac5-4a3f-441f-9ed9-b8e3e9b1f13c"
-    aaprs := "b5d43fde-28e8-4ba3-b5a2-e238499e584d"
+    idprs := "5cd0189d-d066-403d-b362-3554f6f7ec71"
+    aaprs := "2e3c2c8e-1c94-4531-8978-a0f8c3cec44e"
 
     status, createGrantsResponse, err := aap.CreateGrants(url, aapClient, []aap.CreateGrantsRequest{
       {Scope:"openid", PublishedBy: idprs},
