@@ -18,23 +18,60 @@
         <div class="ui segments">
           <div class="ui segment">
 
-            <form method="post" action="/access/new" class="ui form">
-              {{ .csrfField }}
+            <form>
 
-              <div class="field">
-                <label>Title</label>
-                <input type="text" name="title" placeholder="Title">
-              </div>
-              <div class="field">
-                <label>Description</label>
-                <textarea rows="2" name="description" placeholder="Description"></textarea>
-              </div>
-              <div class="field">
-                <label>Scope</label>
-                <input type="text" name="scope" placeholder="scope">
-              </div>
+              <table class="ui compact celled table">
+                <thead>
+                  <tr>
+                    <th>Scope</th>
+                    <th>Connected to</th>
+                    <th>Enable</th>
+                    <th>Allow from</th>
+                    <th>Allow to</th>
+                  </tr>
+                </thead>
+                <tbody>
 
-              <input type="submit" value="Create access right" class="ui button primary float right" tabindex="0"/>
+                  {{ range $key, $scope := .scopes }}
+                  <tr>
+                    <td><a class="ui blue label" href="#">{{ $scope.Scope }}</a></td>
+                    <td><a class="ui blue label">?</a></td>
+                    <td class="collapsing">
+                      <div class="ui fitted slider checkbox">
+                        <input type="checkbox" name="enable"> <label></label>
+                      </div>
+                    </td>
+                    <td class="collapsing">
+                      <div class="ui calendar">
+                        <div class="ui input left icon">
+                          <i class="calendar icon"></i>
+                          <input type="date" disabled placeholder="Start date" name="date_start" required>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="collapsing">
+                      <div class="ui calendar">
+                        <div class="ui input left icon">
+                          <i class="calendar icon"></i>
+                          <input type="date" disabled placeholder="End (Leave blank for infinite)" name="date_end" onload="">
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                  {{ end }}
+
+                </tbody>
+                <tfoot class="full-width">
+                  <tr>
+                    <th colspan="5">
+                      <button onclick="return confirm('Are you sure about that?')" class="ui right floated small red labeled icon button">
+                        <i class="save icon"></i> Save
+                      </button>
+                    </th>
+                  </tr>
+                </tfoot>
+              </table>
+
             </form>
 
             {{if .errors }}
@@ -51,5 +88,37 @@
 
   {{ template "footer" . }}
 </div>
+
+<script type="text/javascript">
+  $(function(){
+    $("input[name=date_start]").each(function(i,e) {
+      let isoDate = new Date().toISOString().substring(0,10)
+      $(e).val(isoDate);
+      $(e).prop("min", isoDate);
+    });
+/*
+    var today = new Date();
+    $('.ui.calendar').calendar({
+      type: 'datetime',
+      ampm: false,
+      minDate: new Date(today.getFullYear(), today.getMonth(), today.getDate()),
+      initialDate: new Date(today.getFullYear(), today.getMonth(), today.getDate())
+    });
+*/
+
+    $("input[name=enable]").on('click', function(){
+      toggleDatepickers($(this));
+    });
+
+    function toggleDatepickers(e) {
+     if ( e.is(":checked") ) {
+        e.closest("tr").find("input[type=date]").prop("disabled", false);
+        return;
+      }
+
+      e.closest("tr").find("input[type=date]").prop("disabled", true);
+    }
+  });
+</script>
 
 {{ template "htmlend" . }}
