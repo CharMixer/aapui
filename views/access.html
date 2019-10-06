@@ -24,8 +24,11 @@
             </div>
             <span>Scopes available for handling access rights</span>
             <div class="ui hidden divider"></div>
+            <pre>
+            </pre>
 
               {{ range $key, $scope := .scopes }}
+{{ $scope }}
                 <a class="ui blue label" style="margin-top:5px" data-tooltip="{{ $scope.Title }}">{{ $scope.Scope }}</a>
               {{ end }}
               <a href="/access/new" style="margin-top:5px" class="ui green label"><i class="plus icon"></i> Create scope</a>

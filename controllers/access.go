@@ -11,6 +11,9 @@ import (
 
   aap "github.com/charmixer/aap/client"
 
+  "github.com/mitchellh/mapstructure"
+  "fmt"
+
   "github.com/charmixer/aapui/config"
   "github.com/charmixer/aapui/environment"
 )
@@ -57,6 +60,16 @@ func ShowAccess(env *environment.State, route environment.Route) gin.HandlerFunc
         log.Println("Rest error: " + e.Error)
       }
     }
+
+    var result []aap.ReadScopesResponse
+    mapstructure.Decode(ok, &result)
+
+    fmt.Println(result)
+
+    //var a []aap.ReadScopesResponse
+    //for _,e := range ok.([]interface{}) {
+      //a = append(a, e.(aap.ReadScopesResponse))
+    //}
 
     c.HTML(200, "access.html", gin.H{
       "title": "Access",
