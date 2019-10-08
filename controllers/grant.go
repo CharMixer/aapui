@@ -52,8 +52,7 @@ func ShowGrants(env *environment.State, route environment.Route) gin.HandlerFunc
     // fetch grants
 
     url := config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.grants")
-    //status, readGrantsResponse, err := aap.ReadGrants(url, aapClient, nil /*[]aap.ReadGrantsRequest{}*/)
-    _, readGrantsResponse, err := aap.ReadGrants(url, aapClient, []aap.ReadGrantsRequest{
+    _, responses, err := aap.ReadGrants(url, aapClient, []aap.ReadGrantsRequest{
       {Scope: "openid", PublishedBy:"74ac5-4a3f-441f-9ed9-b8e3e9b1f13c"},
     })
 
@@ -63,7 +62,8 @@ func ShowGrants(env *environment.State, route environment.Route) gin.HandlerFunc
       return
     }
 
-    _, grants, restErr := aap.UnmarshalResponse(0, readGrantsResponse)
+    var grants aap.ReadGrantsResponse
+    _, restErr := responses.Unmarshal(0, &grants)
     if len(restErr) > 0 {
       for _,e := range restErr {
         // TODO show user somehow
@@ -77,7 +77,7 @@ func ShowGrants(env *environment.State, route environment.Route) gin.HandlerFunc
     // fetch scopes
 
     url = config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.scopes")
-    _, readScopesResponse, err := aap.ReadScopes(url, aapClient, nil)
+    _, responses, err = aap.ReadScopes(url, aapClient, nil)
 
     if err != nil {
       c.AbortWithStatus(404)
@@ -85,7 +85,8 @@ func ShowGrants(env *environment.State, route environment.Route) gin.HandlerFunc
       return
     }
 
-    _, scopes, restErr := aap.UnmarshalResponse(0, readScopesResponse)
+    var scopes aap.ReadScopesResponse
+    _, restErr = responses.Unmarshal(0, &scopes)
     if len(restErr) > 0 {
       log.Debug(restErr)
       for _,e := range restErr {
@@ -153,7 +154,7 @@ func SubmitGrants(env *environment.State, route environment.Route) gin.HandlerFu
     idprs := "5cd0189d-d066-403d-b362-3554f6f7ec71"
     aaprs := "2e3c2c8e-1c94-4531-8978-a0f8c3cec44e"
 
-    status, createGrantsResponse, err := aap.CreateGrants(url, aapClient, []aap.CreateGrantsRequest{
+    status, responses, err := aap.CreateGrants(url, aapClient, []aap.CreateGrantsRequest{
       {Scope:"openid", PublishedBy: idprs},
       {Scope:"offline", PublishedBy: idprs},
       {Scope:"logout:identity", PublishedBy: idprs},
@@ -170,7 +171,8 @@ func SubmitGrants(env *environment.State, route environment.Route) gin.HandlerFu
     }
 
     if status == 200 {
-      _, ok, restErr := aap.UnmarshalResponse(0, createGrantsResponse)
+      var scopes aap.ReadScopesResponse
+      _, restErr := responses.Unmarshal(0, &scopes)
       if restErr != nil {
         for _,e := range restErr {
           // TODO show user somehow
@@ -180,7 +182,7 @@ func SubmitGrants(env *environment.State, route environment.Route) gin.HandlerFu
 
       c.HTML(200, "grants.html", gin.H{
         "title": "Grants",
-        "scopes": ok,
+        "scopes": scopes,
         csrf.TemplateTag: csrf.TemplateField(c.Request),
         "links": []map[string]string{
           {"href": "/public/css/dashboard.css"},
