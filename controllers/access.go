@@ -17,8 +17,6 @@ import (
 
 type newAccessForm struct {
   Scope       string `form:"scope" binding:"required"`
-  Title       string `form:"title" binding:"required"`
-  Description string `form:"description" binding:"required"`
 }
 
 func ShowAccess(env *environment.State, route environment.Route) gin.HandlerFunc {
@@ -82,11 +80,13 @@ func ShowAccessNew(env *environment.State, route environment.Route) gin.HandlerF
     })
 
     c.HTML(200, "access_new.html", gin.H{
-      "title": "Create new access right",
+      "title": "Create new scope",
       csrf.TemplateTag: csrf.TemplateField(c.Request),
       "links": []map[string]string{
         {"href": "/public/css/dashboard.css"},
       },
+      "idpUiUrl": config.GetString("idpui.public.url"),
+      "aapUiUrl": config.GetString("aapui.public.url"),
     })
   }
   return gin.HandlerFunc(fn)
@@ -128,8 +128,6 @@ func SubmitAccessNew(env *environment.State, route environment.Route) gin.Handle
     var createScopesRequests []aap.CreateScopesRequest
     createScopesRequests = append(createScopesRequests, aap.CreateScopesRequest{
       Scope:               form.Scope,
-      Title:               form.Title,
-      Description:         form.Description,
     })
 
     url := config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.scopes")
@@ -139,11 +137,13 @@ func SubmitAccessNew(env *environment.State, route environment.Route) gin.Handle
 
     if restErr != nil {
       c.HTML(http.StatusOK, "access_new.html", gin.H{
-        "title": "Create new access right",
+        "title": "Create new scope",
         "errors": restErr,
         "links": []map[string]string{
           {"href": "/public/css/dashboard.css"},
         },
+        "idpUiUrl": config.GetString("idpui.public.url"),
+        "aapUiUrl": config.GetString("aapui.public.url"),
       })
       c.Abort()
       return
