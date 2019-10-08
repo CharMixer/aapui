@@ -10,9 +10,7 @@ import (
   oidc "github.com/coreos/go-oidc"
 
   aap "github.com/charmixer/aap/client"
-
-  "github.com/mitchellh/mapstructure"
-  "fmt"
+  //bulky "github.com/charmixer/bulky/client"
 
   "github.com/charmixer/aapui/config"
   "github.com/charmixer/aapui/environment"
@@ -48,26 +46,16 @@ func ShowAccess(env *environment.State, route environment.Route) gin.HandlerFunc
     aapClient := aap.NewAapClientWithUserAccessToken(env.HydraConfig, accessToken)
 
     url := config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.scopes")
-    _, readScopesResponse, _ := aap.ReadScopes(url, aapClient, nil)
-    //readScopesResponse, _ := aap.ReadScopes(url, aapClient, []aap.ReadScopesRequest{{Scope: "openid"}})
+    _, responses, _ := aap.ReadScopes(url, aapClient, nil)
 
-    _, ok, restErr := aap.UnmarshalResponse(0, readScopesResponse)
+    var ok aap.ReadScopesResponse
+    _, restErr := responses.Unmarshal(0, &ok)
     if restErr != nil {
       for _,e := range restErr {
         // TODO show user somehow
         log.Println("Rest error: " + e.Error)
       }
     }
-
-    var result []aap.ReadScopesResponse
-    mapstructure.Decode(ok, &result)
-
-    fmt.Println(result)
-
-    //var a []aap.ReadScopesResponse
-    //for _,e := range ok.([]interface{}) {
-      //a = append(a, e.(aap.ReadScopesResponse))
-    //}
 
     c.HTML(200, "access.html", gin.H{
       "title": "Access",
@@ -145,8 +133,10 @@ func SubmitAccessNew(env *environment.State, route environment.Route) gin.Handle
 
     url := config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.scopes")
 
-    _, createdScopesResponse, err := aap.CreateScopes(url, aapClient, createScopesRequests)
-    _, _, restErr := aap.UnmarshalResponse(0, createdScopesResponse)
+    _, response, err := aap.CreateScopes(url, aapClient, createScopesRequests)
+
+    var ok aap.CreateScopesResponse
+    _, restErr := response.Unmarshal(0, &ok)
 
     if restErr != nil {
       c.HTML(http.StatusOK, "access_new.html", gin.H{
