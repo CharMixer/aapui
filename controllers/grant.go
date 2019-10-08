@@ -19,7 +19,8 @@ type grantsForm struct {
   Scope         string `form:"scope" binding:"required"`
   PublisherId   string `form:"publisher_id" binding:"required"`
   GrantedId     string `form:"granted_id" binding:"required"`
-  GranterId     string `form:"granter_id" binding:"required"`
+  DateStart     string `form:"date_start" binding:"required"`
+  DateEnd       string `form:"date_end" binding:"required"`
 }
 
 func ShowGrants(env *environment.State, route environment.Route) gin.HandlerFunc {
@@ -53,11 +54,7 @@ func ShowGrants(env *environment.State, route environment.Route) gin.HandlerFunc
     url := config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.grants")
     //status, readGrantsResponse, err := aap.ReadGrants(url, aapClient, nil /*[]aap.ReadGrantsRequest{}*/)
     _, readGrantsResponse, err := aap.ReadGrants(url, aapClient, []aap.ReadGrantsRequest{
-      //{Scope: "openid"},
       {Scope: "openid", PublishedBy:"74ac5-4a3f-441f-9ed9-b8e3e9b1f13c"},
-      {Scope: "openid", PublishedBy:"14874ac5-4a3f-441f-9ed9-b8e3e9b1f13c"},
-      //{PublishedBy: "b5d43fde-28e8-4ba3-b5a2-e238499e584d"},
-      //{},
     })
 
     if err != nil {
@@ -108,6 +105,8 @@ func ShowGrants(env *environment.State, route environment.Route) gin.HandlerFunc
       "links": []map[string]string{
         {"href": "/public/css/dashboard.css"},
       },
+      "idpUiUrl": config.GetString("idpui.public.url"),
+      "aapUiUrl": config.GetString("aapui.public.url"),
     })
 
   }
@@ -120,6 +119,17 @@ func SubmitGrants(env *environment.State, route environment.Route) gin.HandlerFu
     log = log.WithFields(logrus.Fields{
       "func": "ShowAccess",
     })
+
+    var form []grantsForm
+    err := c.Bind(&form)
+    if err != nil {
+      c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+      return
+    }
+
+    test := c.PostFormArray("grants")
+    c.AbortWithStatusJSON(http.StatusOK, test)
+    return
 
     session := sessions.Default(c)
 
@@ -175,6 +185,8 @@ func SubmitGrants(env *environment.State, route environment.Route) gin.HandlerFu
         "links": []map[string]string{
           {"href": "/public/css/dashboard.css"},
         },
+        "idpUiUrl": config.GetString("idpui.public.url"),
+        "aapUiUrl": config.GetString("aapui.public.url"),
       })
     }
 

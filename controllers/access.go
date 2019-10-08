@@ -65,6 +65,8 @@ func ShowAccess(env *environment.State, route environment.Route) gin.HandlerFunc
       "links": []map[string]string{
         {"href": "/public/css/dashboard.css"},
       },
+      "idpUiUrl": config.GetString("idpui.public.url"),
+      "aapUiUrl": config.GetString("aapui.public.url"),
     })
   }
   return gin.HandlerFunc(fn)

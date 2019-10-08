@@ -133,6 +133,8 @@ func ShowAuthorization(env *environment.State, route environment.Route) gin.Hand
       "granted_scopes": grantedConsents,
       "requested_audiences": requestedAudiences,
       "consent_challenge": consentChallenge,
+      "idpUiUrl": config.GetString("idpui.public.url"),
+      "aapUiUrl": config.GetString("aapui.public.url"),
     })
   }
   return gin.HandlerFunc(fn)
