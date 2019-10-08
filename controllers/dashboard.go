@@ -6,6 +6,7 @@ import (
   "github.com/gorilla/csrf"
 
   "github.com/charmixer/aapui/environment"
+  "github.com/charmixer/aapui/config"
 )
 
 func ShowDashboard(env *environment.State, route environment.Route) gin.HandlerFunc {
@@ -22,6 +23,8 @@ func ShowDashboard(env *environment.State, route environment.Route) gin.HandlerF
       "links": []map[string]string{
         {"href": "/public/css/dashboard.css"},
       },
+      "idpUiUrl": config.GetString("idpui.public.url"),
+      "aapUiUrl": config.GetString("aapui.public.url"),
     })
   }
   return gin.HandlerFunc(fn)

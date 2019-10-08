@@ -22,19 +22,11 @@
               {{ .csrfField }}
 
               <div class="field">
-                <label>Title</label>
-                <input type="text" name="title" placeholder="Title">
-              </div>
-              <div class="field">
-                <label>Description</label>
-                <textarea rows="2" name="description" placeholder="Description"></textarea>
-              </div>
-              <div class="field">
                 <label>Scope</label>
-                <input type="text" name="scope" placeholder="scope">
+                <input type="text" name="scope" placeholder="Scope">
               </div>
 
-              <input type="submit" value="Create access right" class="ui button primary float right" tabindex="0"/>
+              <input type="submit" value="Create new scope" class="ui button primary float right" tabindex="0"/>
             </form>
 
             {{if .errors }}
