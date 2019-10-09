@@ -47,7 +47,7 @@ func ShowAccess(env *environment.State, route environment.Route) gin.HandlerFunc
     aapClient := aap.NewAapClientWithUserAccessToken(env.HydraConfig, accessToken)
 
     url := config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.scopes")
-    _, responses, _ := aap.ReadScopes(url, aapClient, nil)
+    _, responses, _ := aap.ReadScopes(aapClient, url, nil)
 
     var ok aap.ReadScopesResponse
     _, restErr := bulky.Unmarshal(0, responses, &ok)
@@ -134,7 +134,7 @@ func SubmitAccessNew(env *environment.State, route environment.Route) gin.Handle
 
     url := config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.scopes")
 
-    _, responses, err := aap.CreateScopes(url, aapClient, createScopesRequests)
+    _, responses, err := aap.CreateScopes(aapClient, url, createScopesRequests)
 
     var ok aap.CreateScopesResponse
     _, restErr := bulky.Unmarshal(0, responses, &ok)
