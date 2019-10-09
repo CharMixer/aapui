@@ -9,8 +9,9 @@ import (
   "golang.org/x/oauth2"
   oidc "github.com/coreos/go-oidc"
 
+  bulky "github.com/charmixer/bulky/client"
+
   aap "github.com/charmixer/aap/client"
-  //bulky "github.com/charmixer/bulky/client"
 
   "github.com/charmixer/aapui/config"
   "github.com/charmixer/aapui/environment"
@@ -49,7 +50,7 @@ func ShowAccess(env *environment.State, route environment.Route) gin.HandlerFunc
     _, responses, _ := aap.ReadScopes(url, aapClient, nil)
 
     var ok aap.ReadScopesResponse
-    _, restErr := responses.Unmarshal(0, &ok)
+    _, restErr := bulky.Unmarshal(0, responses, &ok)
     if restErr != nil {
       for _,e := range restErr {
         // TODO show user somehow
@@ -133,10 +134,10 @@ func SubmitAccessNew(env *environment.State, route environment.Route) gin.Handle
 
     url := config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.scopes")
 
-    _, response, err := aap.CreateScopes(url, aapClient, createScopesRequests)
+    _, responses, err := aap.CreateScopes(url, aapClient, createScopesRequests)
 
     var ok aap.CreateScopesResponse
-    _, restErr := response.Unmarshal(0, &ok)
+    _, restErr := bulky.Unmarshal(0, responses, &ok)
 
     if restErr != nil {
       c.HTML(http.StatusOK, "access_new.html", gin.H{
