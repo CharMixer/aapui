@@ -9,6 +9,8 @@ import (
   "golang.org/x/oauth2"
   oidc "github.com/coreos/go-oidc"
 
+  bulky "github.com/charmixer/bulky/client"
+
   aap "github.com/charmixer/aap/client"
 
   "github.com/charmixer/aapui/config"
@@ -63,7 +65,7 @@ func ShowGrants(env *environment.State, route environment.Route) gin.HandlerFunc
     }
 
     var grants aap.ReadGrantsResponse
-    _, restErr := responses.Unmarshal(0, &grants)
+    _, restErr := bulky.Unmarshal(0, responses, &grants)
     if len(restErr) > 0 {
       for _,e := range restErr {
         // TODO show user somehow
@@ -86,7 +88,7 @@ func ShowGrants(env *environment.State, route environment.Route) gin.HandlerFunc
     }
 
     var scopes aap.ReadScopesResponse
-    _, restErr = responses.Unmarshal(0, &scopes)
+    _, restErr = bulky.Unmarshal(0, responses, &scopes)
     if len(restErr) > 0 {
       log.Debug(restErr)
       for _,e := range restErr {
@@ -172,7 +174,7 @@ func SubmitGrants(env *environment.State, route environment.Route) gin.HandlerFu
 
     if status == 200 {
       var scopes aap.ReadScopesResponse
-      _, restErr := responses.Unmarshal(0, &scopes)
+      _, restErr := bulky.Unmarshal(0, responses, &scopes)
       if restErr != nil {
         for _,e := range restErr {
           // TODO show user somehow
