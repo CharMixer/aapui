@@ -20,6 +20,7 @@ const (
 type State struct {
   Provider *oidc.Provider
   AapApiConfig *clientcredentials.Config
+  IdpApiConfig *clientcredentials.Config
   HydraConfig *oauth2.Config
 }
 
