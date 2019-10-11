@@ -100,10 +100,21 @@ func main() {
     AuthStyle: 2, // https://godoc.org/golang.org/x/oauth2#AuthStyle
   }
 
+  // IdpFe needs to be able as an App using client_id to access idp endpoints. Using client credentials flow
+  idpConfig := &clientcredentials.Config{
+    ClientID:  config.GetString("oauth2.client.id"),
+    ClientSecret: config.GetString("oauth2.client.secret"),
+    TokenURL: provider.Endpoint().TokenURL,
+    Scopes: config.GetStringSlice("oauth2.scopes.required"),
+    EndpointParams: url.Values{"audience": {"idp"}},
+    AuthStyle: 2, // https://godoc.org/golang.org/x/oauth2#AuthStyle
+  }
+
   // Setup app state variables. Can be used in handler functions by doing closures see exchangeAuthorizationCodeCallback
   env := &environment.State{
     Provider: provider,
     AapApiConfig: aapConfig,
+    IdpApiConfig: idpConfig,
     HydraConfig: hydraConfig,
   }
 

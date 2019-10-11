@@ -12,6 +12,7 @@ import (
   bulky "github.com/charmixer/bulky/client"
 
   aap "github.com/charmixer/aap/client"
+  idp "github.com/charmixer/idp/client"
 
   "github.com/charmixer/aapui/config"
   "github.com/charmixer/aapui/environment"
@@ -49,13 +50,13 @@ func ShowGrants(env *environment.State, route environment.Route) gin.HandlerFunc
     var accessToken *oauth2.Token
     accessToken = session.Get(environment.SessionTokenKey).(*oauth2.Token)
     aapClient := aap.NewAapClientWithUserAccessToken(env.HydraConfig, accessToken)
-
+    idpClient := idp.NewIdpClientWithUserAccessToken(env.HydraConfig, accessToken)
 
     // fetch grants
 
     url := config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.grants")
     _, responses, err := aap.ReadGrants(aapClient, url, []aap.ReadGrantsRequest{
-      {Scope: "openid", PublishedBy:"74ac5-4a3f-441f-9ed9-b8e3e9b1f13c"},
+      {Scope: "openid", Publisher:"74ac5-4a3f-441f-9ed9-b8e3e9b1f13c"},
     })
 
     if err != nil {
@@ -76,6 +77,28 @@ func ShowGrants(env *environment.State, route environment.Route) gin.HandlerFunc
       return
     }
 
+    // fetch resourceservers
+
+    url = config.GetString("idp.public.url") + config.GetString("idp.public.endpoints.resourceservers.collection")
+    _, responses, err = idp.ReadResourceServers(idpClient, url, nil)
+
+    if err != nil {
+      c.AbortWithStatus(404)
+      log.Debug(err.Error())
+      return
+    }
+
+    var resourceservers idp.ReadResourceServersResponse
+    _, restErr = bulky.Unmarshal(0, responses, &resourceservers)
+    if len(restErr) > 0 {
+      for _,e := range restErr {
+        // TODO show user somehow
+        log.Debug("Rest error: " + e.Error)
+      }
+
+      c.AbortWithStatus(404)
+      return
+    }
     // fetch scopes
 
     url = config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.scopes")
@@ -157,13 +180,13 @@ func SubmitGrants(env *environment.State, route environment.Route) gin.HandlerFu
     aaprs := "2e3c2c8e-1c94-4531-8978-a0f8c3cec44e"
 
     status, responses, err := aap.CreateGrants(aapClient, url, []aap.CreateGrantsRequest{
-      {Scope:"openid", PublishedBy: idprs},
-      {Scope:"offline", PublishedBy: idprs},
-      {Scope:"logout:identity", PublishedBy: idprs},
-      {Scope:"recover:identity", PublishedBy: idprs},
+      {Scope:"openid", Publisher: idprs},
+      {Scope:"offline", Publisher: idprs},
+      {Scope:"logout:identity", Publisher: idprs},
+      {Scope:"recover:identity", Publisher: idprs},
 
-      {Scope:"openid", PublishedBy: aaprs},
-      {Scope:"offline", PublishedBy: aaprs},
+      {Scope:"openid", Publisher: aaprs},
+      {Scope:"offline", Publisher: aaprs},
     })
 
     if err != nil {
