@@ -1,249 +1,57 @@
 {{ template "htmlbegin" . }}
+{{ template "dashboard_start" . }}
+<div class="ui segments">
 
-<div class="grid-container">
+  <div class="ui segment">
 
-  {{ template "header" . }}
+    <div class="ui teal ribbon label">
+      <i class="user icon"></i> Scopes
+    </div>
+    <span>Scopes available for handling access rights</span>
+    <div class="ui hidden divider"></div>
+    <pre>
+    </pre>
 
-  {{ template "sidenav" . }}
+      {{ range $key, $scope := .scopes }}
+       <a class="ui blue label" style="margin-top:5px">{{ $scope.Scope }}</a>
+      {{ end }}
+      <a href="/access/new" style="margin-top:5px" class="ui green label"><i class="plus icon"></i> Create scope</a>
 
-  <main class="main">
-    <div class="main__header">
-      <div class="main-header__heading">Hello User</div>
-      <div class="main-header__updates">Recent Items</div>
+
+    <div class="ui hidden divider"></div>
+
+    <div class="ui blue ribbon label">
+      <i class="globe icon"></i> Grants
+    </div>
+    <span>Things you are allowed to do</span>
+    <p></p>
+
+    <div class="ui list">
+      <div class="item">
+        <i class="linkify icon"></i>
+        <div class="content">
+          <a href="https://id.localhost/profile?id={{ .id }}" title="Your public profile">id.localhost/profile?id={{ .id }}</a>
+        </div>
+      </div>
     </div>
 
-    <div class="main__cards">
-        <h1>{{ .title }}</h1>
+    <div class="ui hidden divider"></div>
 
-        <div class="ui segments">
-
-          <div class="ui segment">
-
-            <div class="ui teal ribbon label">
-              <i class="user icon"></i> Scopes
-            </div>
-            <span>Scopes available for handling access rights</span>
-            <div class="ui hidden divider"></div>
-            <pre>
-            </pre>
-
-              {{ range $key, $scope := .scopes }}
-               <a class="ui blue label" style="margin-top:5px">{{ $scope.Scope }}</a>
-              {{ end }}
-              <a href="/access/new" style="margin-top:5px" class="ui green label"><i class="plus icon"></i> Create scope</a>
-
-
-            <div class="ui hidden divider"></div>
-
-            <div class="ui blue ribbon label">
-              <i class="globe icon"></i> Grants
-            </div>
-            <span>Things you are allowed to do</span>
-            <p></p>
-
-            <div class="ui list">
-              <div class="item">
-                <i class="linkify icon"></i>
-                <div class="content">
-                  <a href="https://id.localhost/profile?id={{ .id }}" title="Your public profile">id.localhost/profile?id={{ .id }}</a>
-                </div>
-              </div>
-            </div>
-
-            <div class="ui hidden divider"></div>
-
-            <div class="ui grey ribbon label">
-              <i class="server icon"></i> System
-            </div>
-            <span>The identifier representing you in the system</span>
-            <div class="ui list">
-              <div class="item">
-                <i class="key icon"></i>
-                <div class="content">
-                  <span title="The identifier for you in the system">{{ .id }}</span>
-                </div>
-              </div>
-            </div>
-
-          </div>
-
-        </div>
-<!--
-        <div class="ui segments">
-          <div class="ui segment">
-
-            <form method="post" action="/permissions">
-
-              <div class="content" style="overflow:hidden">
-                <img class="ui avatar mini image" src="https://via.placeholder.com/150" />
-                <span>You</span>
-
-                <button class="ui button right floated">
-                  Show access
-                </button>
-                <button class="ui button right floated">
-                  Show what I can give access to
-                </button>
-              </div>
-
-              <h2>Your access rights</h2>
-              <table class="ui compact celled definition table">
-                <thead>
-                  <tr>
-                    <th></th>
-                    <th>Scope</th>
-                    <th>Connected to</th>
-                    <th>Allow</th>
-                  </tr>
-                </thead>
-                <tbody>
-
-                  <tr>
-                    <td>Some role permissionSome identity permission</td>
-                    <td><a class="ui blue label">read:permission</a></td>
-                    <td><a class="ui blue label">Identity</a></td>
-                    <td class="collapsing">
-                      <div class="ui fitted slider checkbox">
-                        <input type="checkbox"> <label></label>
-                      </div>
-                    </td>
-                  </tr>
-
-                  <tr>
-                    <td>Some role permissionSome identity permission</td>
-                    <td><a class="ui blue label">read:permission</a></td>
-                    <td><a class="ui red label">Role A</a></td>
-                    <td class="collapsing">
-                      <div class="ui fitted slider checkbox">
-                        <input type="checkbox"> <label></label>
-                      </div>
-                    </td>
-                  </tr>
-
-                  <tr>
-                    <td>Some role permissionSome identity permission</td>
-                    <td><a class="ui blue label">read:permission</a></td>
-                    <td><a class="ui yellow label">Role B</a></td>
-                    <td class="collapsing">
-                      <div class="ui fitted slider checkbox">
-                        <input type="checkbox" disabled="disabled"> <label></label>
-                      </div>
-                    </td>
-                  </tr>
-
-                  <tr>
-                    <td>Some role permissionSome identity permission</td>
-                    <td><a class="ui blue label">read:permission</a></td>
-                    <td><a class="ui red label">Role A</a><a class="ui yellow label">Role B</a></td>
-                    <td class="collapsing">
-                      <div class="ui fitted slider checkbox">
-                        <input type="checkbox" disabled="disabled"> <label></label>
-                      </div>
-                    </td>
-                  </tr>
-
-                </tbody>
-                <tfoot class="full-width">
-                  <tr>
-                    <th colspan="4">
-                      <div class="ui right floated small primary labeled icon button">
-                        <i class="save icon"></i> Save
-                      </div>
-                    </th>
-                  </tr>
-                </tfoot>
-              </table>
-
-            </form>
-
-            <form>
-
-              <h2>Access rights you can give others</h2>
-              <table class="ui compact celled table">
-                <thead>
-                  <tr>
-                    <th>Title</th>
-                    <th>Description</th>
-                    <th>Scope</th>
-                    <th>Connected to</th>
-                    <th>Allow</th>
-                  </tr>
-                </thead>
-                <tbody>
-
-                  <tr>
-                    <td>Some role permissionSome identity permission</td>
-                    <td>Some role permissionSome identity permission</td>
-                    <td><a class="ui blue label">read:permission</a></td>
-                    <td><a class="ui blue label">Identity</a></td>
-                    <td class="collapsing">
-                      <div class="ui fitted slider checkbox">
-                        <input type="checkbox"> <label></label>
-                      </div>
-                    </td>
-                  </tr>
-
-                  <tr>
-                    <td>Some role permissionSome identity permission</td>
-                    <td>Some role permissionSome identity permission</td>
-                    <td><a class="ui blue label">read:permission</a></td>
-                    <td><a class="ui red label">Role A</a></td>
-                    <td class="collapsing">
-                      <div class="ui fitted slider checkbox">
-                        <input type="checkbox"> <label></label>
-                      </div>
-                    </td>
-                  </tr>
-
-                  <tr>
-                    <td>Some role permissionSome identity permission</td>
-                    <td>Some role permissionSome identity permission</td>
-                    <td><a class="ui blue label">read:permission</a></td>
-                    <td><a class="ui yellow label">Role B</a></td>
-                    <td class="collapsing">
-                      <div class="ui fitted slider checkbox">
-                        <input type="checkbox" disabled="disabled"> <label></label>
-                      </div>
-                    </td>
-                  </tr>
-
-                </tbody>
-                <tfoot class="full-width">
-                  <tr>
-                    <th colspan="5">
-                      <button onclick="return confirm('Are you sure about that?')" class="ui right floated small red labeled icon button">
-                        <i class="save icon"></i> Save
-                      </button>
-                    </th>
-                  </tr>
-                </tfoot>
-              </table>
-
-            </form>
-
-          </div>
-          <div class="ui segment">
-            <img class="ui avatar mini image" src="https://via.placeholder.com/150" />
-            <span>Lasse</span>
-
-            <button class="ui button right floated">
-              Show access
-            </button>
-          </div>
-          <div class="ui segment">
-            <img class="ui avatar mini image" src="https://via.placeholder.com/150" />
-            <span>Marc</span>
-
-            <button class="ui button right floated">
-              Show access
-            </button>
-          </div>
-        </div>
--->
+    <div class="ui grey ribbon label">
+      <i class="server icon"></i> System
     </div>
-  </main>
+    <span>The identifier representing you in the system</span>
+    <div class="ui list">
+      <div class="item">
+        <i class="key icon"></i>
+        <div class="content">
+          <span title="The identifier for you in the system">{{ .id }}</span>
+        </div>
+      </div>
+    </div>
 
-  {{ template "footer" . }}
+  </div>
+
 </div>
-
+{{ template "dashboard_end" . }}
 {{ template "htmlend" . }}

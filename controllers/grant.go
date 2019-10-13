@@ -127,6 +127,7 @@ func ShowGrants(env *environment.State, route environment.Route) gin.HandlerFunc
       "title": "Grants",
       "grants": grants,
       "scopes": scopes,
+      "resourceservers": resourceservers,
       csrf.TemplateTag: csrf.TemplateField(c.Request),
       "links": []map[string]string{
         {"href": "/public/css/dashboard.css"},
