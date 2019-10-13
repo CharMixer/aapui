@@ -30,18 +30,18 @@
 {{ end }}
 
 {{ define "toc" }}
-<div class="item">
+<div class="item blue active">
   <a class="ui logo icon image" href="/">
     <img class="ui mini image" src="/public/images/fingerprint.svg">
   </a>
   <a href="/" style="padding-left:10px"><b>IDP & AAP</b></a>
 </div>
 
-<div class="item grey active">
+<div class="item" style="margin-top:30px">
   <b>Identity</b>
 </div>
 
-<a class="item" href="{{.idpuiurl}}/me">
+<a class="item" href="{{.idpUiUrl}}/me">
   <i class="user icon"></i>
   Profile
 </a>
@@ -54,7 +54,7 @@
   Follows
 </a>
 
-<div class="item grey active">
+<div class="item" style="margin-top:30px">
   <b>Access & Authorization</b>
 </div>
 
@@ -120,21 +120,21 @@ $(function(){
 </script>
 
   <div id="toc-mobile" class="ui vertical inverted sidebar menu left">
-    {{ template "toc" }}
+    {{ template "toc" . }}
   </div>
 
   <div id="topbar" class="ui fixed inverted main menu">
-      <a id="toggle-toc" class="launch icon item">
-        <i class="content icon"></i>
-      </a>
-      <div class="right menu">
-        <a class="item">Logout</a>
-      </div>
+    <a id="toggle-toc" class="launch icon item">
+      <i class="content icon"></i>
+    </a>
+    <div class="right menu">
+      <a class="item">Logout</a>
     </div>
+  </div>
 
   <div id="main" class="pusher">
     <div id="toc-desktop" class="ui vertical inverted sidebar menu left visible">
-      {{ template "toc" }}
+      {{ template "toc" . }}
     </div>
     <div id="content" class="ui basic segment">
       <h1 class="ui header">{{ .title }}</h1>

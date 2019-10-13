@@ -2,66 +2,65 @@
 
 {{ template "dashboard_start" . }}
 
-      <form class="ui form" method="post", action="/access/grant">
-        {{ .csrfField }}
+  <form class="ui form" method="post", action="/access/grant">
+    {{ .csrfField }}
 
+    <div class="field">
+      <label>Resource server</label>
+      <div class="ui selection dropdown">
+        <input type="hidden" name="gender">
+        <i class="dropdown icon"></i>
+        <div class="default text">Resource server</div>
+        <div class="menu">
+          {{ range $key, $rs := .resourceservers }}
+            <div class="item" data-value="{{ $rs.Id }}">{{ $rs.Name }}</div>
+          {{ end }}
+        </div>
+      </div>
+    </div>
+
+    <div class="ui pointing secondary menu">
+      <a class="item active" data-tab="g">Grant</a>
+      <a class="item" data-tab="mg">May grant</a>
+      <a class="item" data-tab="0mg">Root grant</a>
+    </div>
+    <div class="ui tab segment active" data-tab="first">
+
+    {{ if .scopes }}
+      {{ range $key, $scope := .scopes }}
+      <div class="inline fields">
         <div class="field">
-          <label>Resource server</label>
-          <div class="ui selection dropdown">
-            <input type="hidden" name="gender">
-            <i class="dropdown icon"></i>
-            <div class="default text">Resource server</div>
-            <div class="menu">
-              {{ range $key, $rs := .resourceservers }}
-                <div class="item" data-value="{{ $rs.Id }}">{{ $rs.Name }}</div>
-              {{ end }}
-            </div>
+          <label>Scope</label>
+          <a class="ui blue label" style="margin-top:5px">{{ $scope.Scope }}</a>
+        </div>
+      </div>
+      <div class="three fields">
+        <div class="field">
+          <label>Enable</label>
+          <div class="ui toggle checkbox">
+            <input type="checkbox" name="enable" tabindex="0">
           </div>
         </div>
-
-
-        <div class="ui pointing secondary menu">
-          <a class="item active" data-tab="g">Grant</a>
-          <a class="item" data-tab="mg">May grant</a>
-          <a class="item" data-tab="0mg">Root grant</a>
+        <div class="field">
+          <label>Start date</label>
+          <input type="date" name="date_start" placeholder="From">
         </div>
-        <div class="ui tab segment active" data-tab="first">
+        <div class="field">
+          <label>End date</label>
+          <input type="date" name="date_end" placeholder="To">
+        </div>
+      </div>
+      <div class="ui divider"></div>
+      {{ end }}
+    {{ end }}
 
-            {{ if .scopes }}
-                {{ range $key, $scope := .scopes }}
-                <div class="inline fields">
-                  <div class="field">
-                    <label>Scope</label>
-                    <a class="ui blue label" style="margin-top:5px">{{ $scope.Scope }}</a>
-                  </div>
-                </div>
-                <div class="three fields">
-                  <div class="field">
-                    <label>Enable</label>
-                    <div class="ui toggle checkbox">
-                      <input type="checkbox" tabindex="0" class="hidden">
-                    </div>
-                  </div>
-                  <div class="field">
-                    <label>Start date</label>
-                    <input type="date" name="date_start" placeholder="From">
-                  </div>
-                  <div class="field">
-                    <label>End date</label>
-                    <input type="date" name="date_end" placeholder="To">
-                  </div>
-                </div>
-                <div class="ui divider"></div>
-                {{ end }}
-              {{ end }}
+  </form>
 
-            </form>
-
-            {{if .errors }}
-              {{ range $key, $error := .errors }}
-              <p>{{ $error.Error }}</p>
-              {{ end }}
-            {{ end }}
+  {{if .errors }}
+    {{ range $key, $error := .errors }}
+    <p>{{ $error.Error }}</p>
+    {{ end }}
+  {{ end }}
 
 {{ template "dashboard_end" . }}
 
@@ -86,17 +85,21 @@
       $(e).prop("min", isoDate);
     });
 
-    $("input[name=enable]").on('click', function(){
+    $("input[name=enable]").each(function(i,e) {
+      toggleDatepickers($(this));
+    });
+
+    $("input[name=enable]").on('change', function(){
       toggleDatepickers($(this));
     });
 
     function toggleDatepickers(e) {
      if ( e.is(":checked") ) {
-        e.closest("tr").find("input[type=date]").prop("disabled", false);
+        e.closest(".fields").find("input[type=date]").prop("disabled", false);
         return;
       }
 
-      e.closest("tr").find("input[type=date]").prop("disabled", true);
+      e.closest(".fields").find("input[type=date]").prop("disabled", true);
     }
   });
 </script>
