@@ -1,79 +1,59 @@
 {{ template "htmlbegin" . }}
 
-<div class="grid-container">
+{{ template "dashboard_start" . }}
 
-  {{ template "header" . }}
+      <form class="ui form" method="post", action="/access/grant">
+        {{ .csrfField }}
 
-  {{ template "sidenav" . }}
+        <div class="field">
+          <label>Resource server</label>
+          <div class="ui selection dropdown">
+            <input type="hidden" name="gender">
+            <i class="dropdown icon"></i>
+            <div class="default text">Resource server</div>
+            <div class="menu">
+              {{ range $key, $rs := .resourceservers }}
+                <div class="item" data-value="{{ $rs.Id }}">{{ $rs.Name }}</div>
+              {{ end }}
+            </div>
+          </div>
+        </div>
 
-  <main class="main">
-    <div class="main__header">
-      <div class="main-header__heading">Hello User</div>
-      <div class="main-header__updates">Recent Items</div>
-    </div>
 
-    <div class="main__cards">
-        <h1>{{ .title }}</h1>
+        <div class="ui pointing secondary menu">
+          <a class="item active" data-tab="g">Grant</a>
+          <a class="item" data-tab="mg">May grant</a>
+          <a class="item" data-tab="0mg">Root grant</a>
+        </div>
+        <div class="ui tab segment active" data-tab="first">
 
-        <div class="ui segments">
-          <div class="ui segment">
-
-            <form method="post", action="/access/grant">
-              {{ .csrfField }}
-
-              <table class="ui compact celled table">
-                <thead>
-                  <tr>
-                    <th>Scope</th>
-                    <th>Connected to</th>
-                    <th>Enable</th>
-                    <th>Allow from</th>
-                    <th>Allow to</th>
-                  </tr>
-                </thead>
-                <tbody>
-
-                  {{ if .scopes }}
-                    {{ range $key, $scope := .scopes }}
-                    <tr>
-                      <td><a class="ui blue label" href="#">{{ $scope.Scope }}</a><input type="hidden" value="{{ $scope.Scope }}" name="grants[{{ $key }}][scope]" /></td>
-                      <td><a class="ui blue label">?</a></td>
-                      <td class="collapsing">
-                        <div class="ui fitted slider checkbox">
-                          <input type="checkbox" name="grants[{{ $key }}][enable]"> <label></label>
-                        </div>
-                      </td>
-                      <td class="collapsing">
-                        <div class="ui calendar">
-                          <div class="ui input left icon">
-                            <i class="calendar icon"></i>
-                            <input type="date" disabled placeholder="Start date" name="grants[{{ $key }}][date_start]" required>
-                          </div>
-                        </div>
-                      </td>
-                      <td class="collapsing">
-                        <div class="ui calendar">
-                          <div class="ui input left icon">
-                            <i class="calendar icon"></i>
-                            <input type="date" disabled placeholder="End (Leave blank for infinite)" name="grants[{{ $key }}][date_end]" onload="">
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                    {{ end }}
-                  {{ end }}
-
-                </tbody>
-                <tfoot class="full-width">
-                  <tr>
-                    <th colspan="5">
-                      <button onclick="return confirm('Are you sure about that?')" class="ui right floated small red labeled icon button save">
-                        <i class="save icon"></i> Save
-                      </button>
-                    </th>
-                  </tr>
-                </tfoot>
-              </table>
+            {{ if .scopes }}
+                {{ range $key, $scope := .scopes }}
+                <div class="inline fields">
+                  <div class="field">
+                    <label>Scope</label>
+                    <a class="ui blue label" style="margin-top:5px">{{ $scope.Scope }}</a>
+                  </div>
+                </div>
+                <div class="three fields">
+                  <div class="field">
+                    <label>Enable</label>
+                    <div class="ui toggle checkbox">
+                      <input type="checkbox" tabindex="0" class="hidden">
+                    </div>
+                  </div>
+                  <div class="field">
+                    <label>Start date</label>
+                    <input type="date" name="date_start" placeholder="From">
+                  </div>
+                  <div class="field">
+                    <label>End date</label>
+                    <input type="date" name="date_end" placeholder="To">
+                  </div>
+                </div>
+                <div class="ui divider"></div>
+                {{ end }}
+              {{ end }}
 
             </form>
 
@@ -83,17 +63,14 @@
               {{ end }}
             {{ end }}
 
-          </div>
-        </div>
-
-    </div>
-  </main>
-
-  {{ template "footer" . }}
-</div>
+{{ template "dashboard_end" . }}
 
 <script type="text/javascript">
   $(function(){
+
+    $('.selection.dropdown').dropdown();
+    $('.ui.checkbox').checkbox();
+    $('.menu .item').tab();
 
     $("button.save").on('click', function(){
       let form = $(this).closest("form");

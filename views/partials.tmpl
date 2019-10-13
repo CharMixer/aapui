@@ -26,82 +26,130 @@
   {{ end }}
 
 </head>
-  <body>
+<body class="minimal pushable">
 {{ end }}
 
-{{ define "header" }}
-<div class="menu-icon">
-  <i class="fas fa-bars"></i>
+{{ define "toc" }}
+<div class="item">
+  <a class="ui logo icon image" href="/">
+    <img class="ui mini image" src="/public/images/fingerprint.svg">
+  </a>
+  <a href="/" style="padding-left:10px"><b>IDP & AAP</b></a>
 </div>
 
-<header class="header">
-  <div class="header__search">Search...</div>
-  <div class="header__avatar">
-    <img src="https://via.placeholder.com/150" class="circle" height="30px" />
-  </div>
-</header>
+<div class="item grey active">
+  <b>Identity</b>
+</div>
+
+<a class="item" href="{{.idpuiurl}}/me">
+  <i class="user icon"></i>
+  Profile
+</a>
+<a class="item" href="{{.idpUiUrl}}/invites">
+  <i class="paper plane icon"></i>
+  Invites
+</a>
+<a class="item" href="{{.idpUiUrl}}/follows">
+  <i class="user friends icon"></i>
+  Follows
+</a>
+
+<div class="item grey active">
+  <b>Access & Authorization</b>
+</div>
+
+<a class="item" href="{{.aapUiUrl}}/access/grant">
+  <i class="unlock icon"></i>
+  Grants
+</a>
+
+<a class="item" href="{{.aapUiUrl}}/access">
+  <i class="book icon"></i>
+  Consents
+</a>
+
+<a class="item" style="margin-top:40px" href="{{.idpUiUrl}}/logout">
+  <i class="sign out icon"></i>
+  Sign out
+</a>
+
 {{ end }}
 
-{{ define "sidenav" }}
-<aside class="sidenav">
-  <div class="sidenav__logo">
-    <!--<img src="/public/images/fingerprint.svg" alt="Fingerprint" id="fingerprint" />-->
-  </div>
+{{ define "dashboard_start" }}
+<style>
 
-  <div class="sidenav__identity">
-    <img class="ui avatar mini image" src="https://via.placeholder.com/150" />
-    <span>{{ .name }}</span>
-  </div>
+#main {
+  display:flex;
+}
 
-  <ul class="sidenav__list">
+#toc-desktop {
+  display:none;
+  flex: 0 0 auto;
+}
 
-    <li class="sidenav__list-seperator">Identity</li>
-    <li class="sidenav__list-item"><a href="{{.idpUiUrl}}/me">Profile</a></li>
-    <li class="sidenav__list-item"><a href="{{.idpUiUrl}}/invites">Invites</a></li>
-    <li class="sidenav__list-item"><a href="{{.idpUiUrl}}/follows">Followers</a></li>
+#content {
+  flex: 1 1 auto;
+}
 
-    <li class="sidenav__list-seperator">Access & Authorization</li>
-    <li class="sidenav__list-item"><a href="{{.aapUiUrl}}/access">Access</a></li>
+#content {
+  margin-top: 50px;
+}
 
-  </ul>
-  <div class="sidenav__close-icon">
-    <i class="fas fa-times"></i>
-  </div>
-</aside>
+/* Non-mobile styles for side nav responsiveness, 750px breakpoint */
+@media only screen and (min-width: 720px) {
+  #topbar {
+    display:none;
+  }
+  #content {
+    margin-top: 0;
+    margin-left: 260px;
+  }
+  #toc-desktop {
+    display:flex;
+  }
+}
+
+</style>
 
 <script>
-  $(document).ready(function(){
-    const menuIconEl = $('.menu-icon');
-    const sidenavEl = $('.sidenav');
-    const sidenavCloseEl = $('.sidenav__close-icon');
-
-    // Add and remove provided class names
-    function toggleClassName(el, className) {
-      if (el.hasClass(className)) {
-        el.removeClass(className);
-      } else {
-        el.addClass(className);
-      }
-    }
-
-    // Open the side nav on click
-    menuIconEl.on('click', function() {
-      toggleClassName(sidenavEl, 'active');
-    });
-
-    // Close the side nav on click
-    sidenavCloseEl.on('click', function() {
-      toggleClassName(sidenavEl, 'active');
-    });
+$(function(){
+  $("#toggle-toc").click(function(){
+    $("#toc-mobile").sidebar('toggle');
   });
+})
 </script>
+
+  <div id="toc-mobile" class="ui vertical inverted sidebar menu left">
+    {{ template "toc" }}
+  </div>
+
+  <div id="topbar" class="ui fixed inverted main menu">
+      <a id="toggle-toc" class="launch icon item">
+        <i class="content icon"></i>
+      </a>
+      <div class="right menu">
+        <a class="item">Logout</a>
+      </div>
+    </div>
+
+  <div id="main" class="pusher">
+    <div id="toc-desktop" class="ui vertical inverted sidebar menu left visible">
+      {{ template "toc" }}
+    </div>
+    <div id="content" class="ui basic segment">
+      <h1 class="ui header">{{ .title }}</h1>
+{{ end }}
+
+{{ define "dashboard_end" }}
+      {{ template "footer" . }}
+    </div>
+  </div>
 {{ end }}
 
 {{ define "footer" }}
 <footer class="footer">
   <div class="footer__copyright">&copy; 2019</div>
   <div class="footer__signature">Made with love by pure genius</div>
-
 </footer>
 {{ end }}
 
