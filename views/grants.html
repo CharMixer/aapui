@@ -1,60 +1,115 @@
-{{ template "htmlbegin" . }}
+{{ $publisher := .publisher }}
 
+{{ template "htmlbegin" . }}
 {{ template "dashboard_start" . }}
 
-  <form class="ui form" method="post", action="/access/grant">
-    {{ .csrfField }}
-
+  <form class="ui form" method="get" action="/access/grant">
     <div class="field">
       <label>Resource server</label>
       <div class="ui selection dropdown">
-        <input type="hidden" name="gender">
+        <input type="hidden" name="publisher" value="{{ $publisher }}">
         <i class="dropdown icon"></i>
         <div class="default text">Resource server</div>
         <div class="menu">
           {{ range $key, $rs := .resourceservers }}
-            <div class="item" data-value="{{ $rs.Id }}">{{ $rs.Name }}</div>
+          <div class="item" data-value="{{ $rs.Id }}">{{ $rs.Name }}</div>
           {{ end }}
         </div>
       </div>
     </div>
+  </form>
 
-    <div class="ui pointing secondary menu">
-      <a class="item active" data-tab="g">Grant</a>
-      <a class="item" data-tab="mg">May grant</a>
-      <a class="item" data-tab="0mg">Root grant</a>
-    </div>
-    <div class="ui tab segment active" data-tab="first">
+  <div class="ui pointing secondary menu">
+    <a class="item active" data-tab="g">Grant</a>
+    <a class="item" data-tab="mg">May grant</a>
+  </div>
 
-    {{ if .scopes }}
-      {{ range $key, $scope := .scopes }}
-      <div class="inline fields">
-        <div class="field">
-          <label>Scope</label>
-          <a class="ui blue label" style="margin-top:5px">{{ $scope.Scope }}</a>
+  <div class="ui tab segment active" data-tab="g">
+    {{ if .grantPublishes }}
+    <form class="ui form" method="post" action="/access/grant">
+      {{ .csrfField }}
+
+      <div class="field">
+        <input class="ui button primary" type="submit" value="Save" />
+      </div>
+
+
+      {{ range $key, $publish := .grantPublishes }}
+      <input type="hidden" name="Grants[{{ $key }}].Publisher" value="{{ $publisher }}" />
+        <input type="hidden" name="Grants[{{ $key }}].Scope" value="{{ $publish.Scope }}" />
+        <a class="ui blue ribbon label" style="margin-bottom:10px">{{ $publish.Scope }}</a> {{ $publish.Title }}
+
+        <div class="three fields">
+          <div class="field">
+            <label>Enable</label>
+            <div class="ui toggle checkbox">
+              <input type="checkbox" class="enable" name="Grants[{{ $key }}].Enable" tabindex="0">
+            </div>
+          </div>
+          <div class="field">
+            <label>Start date</label>
+            <input type="date" class="startdate" name="Grants[{{ $key }}].StartDate" placeholder="From">
+          </div>
+          <div class="field">
+            <label>End date</label>
+            <input type="date" class="enddate" name="Grants[{{ $key }}].EndDate" placeholder="To">
+          </div>
+        </div>
+        <div class="ui divider"></div>
+      {{ end }}
+
+    </form>
+    {{ else }}
+      <div class="ui icon message">
+        <i class="frown outline icon"></i>
+        <div class="content">
+          <p>Sorry, the given resource server does not publish any grants that you can give others</p>
         </div>
       </div>
+    {{ end }}
+  </div>
+
+  <div class="ui tab segment" data-tab="mg">
+    {{ if .mayGrantPublishes }}
+    <form class="ui form" method="post", action="/access/grant">
+      {{ .csrfField }}
+
+      {{ range $key, $publish := .mayGrantPublishes }}
+      <input type="hidden" name="Grants[{{ $key }}].Publisher" value="" />
+      <input type="hidden" name="Grants[{{ $key }}].Scope" value="{{ $publish.Scope }}" />
+      <a class="ui red ribbon label" style="margin-bottom:10px">{{ $publish.Scope }}</a> {{ $publish.Title }}
+
       <div class="three fields">
         <div class="field">
           <label>Enable</label>
           <div class="ui toggle checkbox">
-            <input type="checkbox" name="enable" tabindex="0">
+            <input type="checkbox" class="enable" name="Grants[{{ $key }}].Enable" tabindex="0">
           </div>
         </div>
         <div class="field">
           <label>Start date</label>
-          <input type="date" name="date_start" placeholder="From">
+          <input type="date" class="startdate" name="Grants[{{ $key }}].StartDate" placeholder="From">
         </div>
         <div class="field">
           <label>End date</label>
-          <input type="date" name="date_end" placeholder="To">
+          <input type="date" class="enddate" name="Grants[{{ $key }}].EndDate" placeholder="To">
         </div>
       </div>
       <div class="ui divider"></div>
       {{ end }}
-    {{ end }}
 
-  </form>
+    </form>
+
+    {{ else }}
+      <div class="ui icon message">
+        <i class="frown outline icon"></i>
+        <div class="content">
+          <p>Sorry, the given resource server does not publish any grants that you can give others</p>
+        </div>
+      </div>
+    {{ end }}
+  </div>
+
 
   {{if .errors }}
     {{ range $key, $error := .errors }}
@@ -67,29 +122,25 @@
 <script type="text/javascript">
   $(function(){
 
+    $("input[name=publisher]").on('change', function(){
+      $(this).closest("form").submit();
+    });
+
     $('.selection.dropdown').dropdown();
     $('.ui.checkbox').checkbox();
     $('.menu .item').tab();
 
-    $("button.save").on('click', function(){
-      let form = $(this).closest("form");
-
-      var formData = JSON.stringify(form.serialize());
-      console.log(formData);
-      return false;
-    });
-
-    $("input[name=date_start]").each(function(i,e) {
+    $("input.startdate").each(function(i,e) {
       let isoDate = new Date().toISOString().substring(0,10)
       $(e).val(isoDate);
       $(e).prop("min", isoDate);
     });
 
-    $("input[name=enable]").each(function(i,e) {
+    $("input.enable").each(function(i,e) {
       toggleDatepickers($(this));
     });
 
-    $("input[name=enable]").on('change', function(){
+    $("input.enable").on('change', function(){
       toggleDatepickers($(this));
     });
 
