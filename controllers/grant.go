@@ -16,14 +16,20 @@ import (
 
   "github.com/charmixer/aapui/config"
   "github.com/charmixer/aapui/environment"
+
+  //"github.com/monoculum/formam"
+  f "github.com/go-playground/form"
+  "fmt"
 )
 
-type grantsForm struct {
-  Scope         string `form:"scope" binding:"required"`
-  PublisherId   string `form:"publisher_id" binding:"required"`
-  GrantedId     string `form:"granted_id" binding:"required"`
-  DateStart     string `form:"date_start" binding:"required"`
-  DateEnd       string `form:"date_end" binding:"required"`
+type formInput struct {
+  Grants        []struct{
+    Publisher      string
+    Scope          string
+    Enable         bool
+    StartDate      string
+    EndDate        string
+  }
 }
 
 func ShowGrants(env *environment.State, route environment.Route) gin.HandlerFunc {
@@ -35,6 +41,8 @@ func ShowGrants(env *environment.State, route environment.Route) gin.HandlerFunc
     })
 
     session := sessions.Default(c)
+
+    publisher, publisherExists := c.GetQuery("publisher")
 
     // NOTE: Maybe session is not a good way to do this.
     // 1. The user access /me with a browser and the access token / id token is stored in a session as we cannot make the browser redirect with Authentication: Bearer <token>
@@ -52,10 +60,52 @@ func ShowGrants(env *environment.State, route environment.Route) gin.HandlerFunc
     aapClient := aap.NewAapClientWithUserAccessToken(env.HydraConfig, accessToken)
     idpClient := idp.NewIdpClientWithUserAccessToken(env.HydraConfig, accessToken)
 
+    var url string
+    var responses []bulky.Response
+    var err error
+    var restErr []bulky.ErrorResponse
+
+    // fetch publishes
+    var publishes aap.ReadPublishesResponse
+    var grantPublishes []aap.Publish
+    var mayGrantPublishes []aap.Publish
+    if publisherExists {
+      url = config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.publishes")
+      _, responses, err = aap.ReadPublishes(aapClient, url, []aap.ReadPublishesRequest{
+        {Publisher: publisher},
+      })
+
+      if err != nil {
+        c.AbortWithStatus(404)
+        log.Debug(err.Error())
+        return
+      }
+
+      _, restErr = bulky.Unmarshal(0, responses, &publishes)
+      if len(restErr) > 0 {
+        for _,e := range restErr {
+          // TODO show user somehow
+          log.Debug("Rest error: " + e.Error)
+        }
+
+        c.AbortWithStatus(404)
+        return
+      }
+
+      for _,p := range publishes {
+        if p.MayGrantScope == "" {
+          grantPublishes = append(grantPublishes, p)
+          continue
+        }
+
+        mayGrantPublishes = append(mayGrantPublishes, p)
+      }
+    }
+
     // fetch grants
 
-    url := config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.grants")
-    _, responses, err := aap.ReadGrants(aapClient, url, []aap.ReadGrantsRequest{
+    url = config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.grants")
+    _, responses, err = aap.ReadGrants(aapClient, url, []aap.ReadGrantsRequest{
       {Scope: "openid", Publisher:"74ac5-4a3f-441f-9ed9-b8e3e9b1f13c"},
     })
 
@@ -66,7 +116,7 @@ func ShowGrants(env *environment.State, route environment.Route) gin.HandlerFunc
     }
 
     var grants aap.ReadGrantsResponse
-    _, restErr := bulky.Unmarshal(0, responses, &grants)
+    _, restErr = bulky.Unmarshal(0, responses, &grants)
     if len(restErr) > 0 {
       for _,e := range restErr {
         // TODO show user somehow
@@ -99,41 +149,21 @@ func ShowGrants(env *environment.State, route environment.Route) gin.HandlerFunc
       c.AbortWithStatus(404)
       return
     }
-    // fetch scopes
-
-    url = config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.scopes")
-    _, responses, err = aap.ReadScopes(aapClient, url, nil)
-
-    if err != nil {
-      c.AbortWithStatus(404)
-      log.Debug(err.Error())
-      return
-    }
-
-    var scopes aap.ReadScopesResponse
-    _, restErr = bulky.Unmarshal(0, responses, &scopes)
-    if len(restErr) > 0 {
-      log.Debug(restErr)
-      for _,e := range restErr {
-        // TODO show user somehow
-        log.Debug("Rest error: " + e.Error)
-      }
-
-      c.AbortWithStatus(404)
-      return
-    }
 
     c.HTML(200, "grants.html", gin.H{
-      "title": "Grants",
-      "grants": grants,
-      "scopes": scopes,
-      "resourceservers": resourceservers,
       csrf.TemplateTag: csrf.TemplateField(c.Request),
       "links": []map[string]string{
         {"href": "/public/css/dashboard.css"},
       },
       "idpUiUrl": config.GetString("idpui.public.url"),
       "aapUiUrl": config.GetString("aapui.public.url"),
+
+      "title": "Grants",
+      "grants": grants,
+      "grantPublishes": grantPublishes,
+      "mayGrantPublishes": mayGrantPublishes,
+      "resourceservers": resourceservers,
+      "publisher": publisher,
     })
 
   }
@@ -147,22 +177,8 @@ func SubmitGrants(env *environment.State, route environment.Route) gin.HandlerFu
       "func": "ShowAccess",
     })
 
-    var form []grantsForm
-    err := c.Bind(&form)
-    if err != nil {
-      c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-      return
-    }
-
-    test := c.PostFormArray("grants")
-    c.AbortWithStatusJSON(http.StatusOK, test)
-    return
-
     session := sessions.Default(c)
 
-    // NOTE: Maybe session is not a good way to do this.
-    // 1. The user access /me with a browser and the access token / id token is stored in a session as we cannot make the browser redirect with Authentication: Bearer <token>
-    // 2. The user is using something that supplies the access token and id token directly in the headers. (aka. no need for the session)
     var idToken *oidc.IDToken
     idToken = session.Get(environment.SessionIdTokenKey).(*oidc.IDToken)
     if idToken == nil {
@@ -171,51 +187,86 @@ func SubmitGrants(env *environment.State, route environment.Route) gin.HandlerFu
       return
     }
 
+    publisher, publisherExists := c.GetQuery("publisher")
+    id, idExists := c.GetQuery("id")
+
+    if !idExists {
+      sub, exists := c.Get("sub")
+
+      if exists {
+        id = sub.(string)
+      }
+    }
+
+    if !publisherExists || !idExists  {
+      log.WithFields(logrus.Fields{
+        "publisher": publisher,
+        "id": id,
+      }).Debug("publisher and id must exists")
+      c.AbortWithStatus(404)
+      return
+    }
+
+    var form formInput
+    c.Request.ParseForm()
+
+    decoder := f.NewDecoder()
+
+    // must pass a pointer
+    err := decoder.Decode(&form, c.Request.Form)
+    if err != nil {
+      log.Panic(err)
+      c.AbortWithStatus(404)
+      return
+    }
+
+
+
     var accessToken *oauth2.Token
     accessToken = session.Get(environment.SessionTokenKey).(*oauth2.Token)
     aapClient := aap.NewAapClientWithUserAccessToken(env.HydraConfig, accessToken)
 
+    var createGrantsRequests []aap.CreateGrantsRequest
+    var deleteGrantsRequests []aap.DeleteGrantsRequest
+    for _,g := range form.Grants {
+      if g.Enable {
+        createGrantsRequests = append(createGrantsRequests, aap.CreateGrantsRequest{
+          Identity: id,
+          Scope: g.Scope,
+          Publisher: g.Publisher,
+        })
+        continue;
+      }
+
+      // deny by default
+      deleteGrantsRequests = append(deleteGrantsRequests, aap.DeleteGrantsRequest{
+        Identity: id,
+        Scope: g.Scope,
+        Publisher: g.Publisher,
+      })
+    }
+
     url := config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.grants")
-
-    idprs := "5cd0189d-d066-403d-b362-3554f6f7ec71"
-    aaprs := "2e3c2c8e-1c94-4531-8978-a0f8c3cec44e"
-
-    status, responses, err := aap.CreateGrants(aapClient, url, []aap.CreateGrantsRequest{
-      {Scope:"openid", Publisher: idprs},
-      {Scope:"offline", Publisher: idprs},
-      {Scope:"logout:identity", Publisher: idprs},
-      {Scope:"recover:identity", Publisher: idprs},
-
-      {Scope:"openid", Publisher: aaprs},
-      {Scope:"offline", Publisher: aaprs},
-    })
+    status, responses, err := aap.CreateGrants(aapClient, url, createGrantsRequests)
 
     if err != nil {
-      c.AbortWithStatus(404)
       log.Debug(err.Error())
+      c.AbortWithStatus(404)
       return
     }
 
     if status == 200 {
-      var scopes aap.ReadScopesResponse
-      _, restErr := bulky.Unmarshal(0, responses, &scopes)
+      var grants aap.CreateGrantsResponse
+      _, restErr := bulky.Unmarshal(0, responses, &grants)
       if restErr != nil {
         for _,e := range restErr {
           // TODO show user somehow
           log.Debug("Rest error: " + e.Error)
         }
+        c.AbortWithStatus(404)
       }
 
-      c.HTML(200, "grants.html", gin.H{
-        "title": "Grants",
-        "scopes": scopes,
-        csrf.TemplateTag: csrf.TemplateField(c.Request),
-        "links": []map[string]string{
-          {"href": "/public/css/dashboard.css"},
-        },
-        "idpUiUrl": config.GetString("idpui.public.url"),
-        "aapUiUrl": config.GetString("aapui.public.url"),
-      })
+      c.Redirect(http.StatusFound, fmt.Sprintf("/access/grant?id=%s&publisher=%s", id, publisher))
     }
 
     c.AbortWithStatus(404)
