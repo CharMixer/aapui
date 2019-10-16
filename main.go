@@ -177,21 +177,10 @@ func serve(env *environment.State) {
   {
     // FIXME: Should these endpoints be protected? aka requiring authentication before access?
     ep.GET(routes["/"].URL,               controllers.ShowAuthorization(env,                 routes["/"]))
-
     ep.GET(routes["/callback"].URL,       controllers.ExchangeAuthorizationCodeCallback(env, routes["/callback"]))    // token exhange endpoint.
-
     ep.GET(routes["/authorize"].URL,      controllers.ShowAuthorization(env,                 routes["/authorize"]))
     ep.POST(routes["/authorize"].URL,     controllers.SubmitAuthorization(env,               routes["/authorize"]))
-
-    ep.GET(routes["/dashboard"].URL,      AuthenticationAndAuthorizationRequired(env,        routes["/dashboard"],    "openid"), controllers.ShowDashboard(env,      routes["/dashboard"]))
     ep.GET(routes["/authorizations"].URL, AuthenticationAndAuthorizationRequired(env,        routes["/dashboard"],    "openid"), controllers.ShowAuthorizations(env, routes["/authorizations"]))
-
-    ep.GET(routes["/access"].URL,         AuthenticationAndAuthorizationRequired(env,        routes["/access"],       "openid"), controllers.ShowAccess(env,         routes["/access"]))
-    ep.GET(routes["/access/grant"].URL,   AuthenticationAndAuthorizationRequired(env,        routes["/access/grant"], "openid"), controllers.ShowGrants(env,         routes["/access/grant"]))
-    ep.POST(routes["/access/grant"].URL,  AuthenticationAndAuthorizationRequired(env,        routes["/access/grant"], "openid"), controllers.SubmitGrants(env,       routes["/access/grant"]))
-
-    ep.GET(routes["/access/new"].URL,     AuthenticationAndAuthorizationRequired(env,        routes["/access/new"],   "openid"), controllers.ShowAccessNew(env,      routes["/access/new"]))
-    ep.POST(routes["/access/new"].URL,    AuthenticationAndAuthorizationRequired(env,        routes["/access/new"],   "openid"), controllers.SubmitAccessNew(env,    routes["/access/new"]))
   }
 
   r.RunTLS(":" + config.GetString("serve.public.port"), config.GetString("serve.tls.cert.path"), config.GetString("serve.tls.key.path"))
