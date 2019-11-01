@@ -1,0 +1,207 @@
+{{ template "htmlbegin" . }}
+
+<style>
+  .ui.toggle.checkbox[class*="right floated"] {
+    float: right !important;
+  }
+
+  .ui.toggle.checkbox .box, .ui.toggle.checkbox label {
+      min-height: 1.5rem;
+      padding-left: 2.5rem;
+      color: rgba(0,0,0,.87);
+  }
+
+</style>
+
+<div class="ui padded middle aligned center aligned grid">
+  <div class="column ui left aligned">
+
+    {{ template "providerheader" . }}
+
+    <div class="ui divider hidden"></div>
+
+    <form class="ui large form" action="{{ .consentUrl }}" method="post">
+      {{ .csrfField }}
+      <input type="hidden" name="challenge" value="{{ .challenge }}" />
+
+      <div class="ui tiny fluid vertical steps unstackable">
+        <div class="step">
+          <i class="user icon"></i>
+          <div class="content">
+            <div class="title">{{.name}}</div>
+            <div class="description">E-mail:</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ui tiny fluid vertical steps unstackable">
+        <div class="step">
+          <i class="code icon"></i>
+          <div class="content">
+            <div class="title">Application access request</div>
+            <div class="description">The application {{ .clientName }} is requesting access on your behalf</div>
+          </div>
+        </div>
+
+        <div class="step">
+          <i class="thumbs up icon"></i>
+          <div class="content">
+            <div class="title">You have a choice</div>
+            <div class="description">You may choose the access to give the application</div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="ui divider hidden"></div>
+
+      <div style="width:100%;text-align:center;">
+        <div class="ui buttons">
+          <input type="submit" name="cancel" class="ui button" value="Cancel" />
+          <div class="or"></div>
+          <input type="submit" name="accept" class="ui positive button" value="Consent" />
+        </div>
+      </div>
+
+      <div class="ui divider hidden"></div>
+
+     <!-- Requested -->
+      <div class="ui left aligned segment">
+
+        <div class="ui tiny fluid vertical steps unstackable">
+          <div class="step">
+            <div class="content" style="width:100%">
+
+              <div class="steptop" style="width:100%">
+                <div class="title" style="float:left;">Everything</div>
+
+                <div class="ui toggle checkbox" style="float:right;padding-right:1em;">
+                  <input type="checkbox" id="consent_all" name="consent[]" tabindex="0" class="hidden">
+                  <label for="consent_all">&nbsp;</label>
+                </div>
+
+              </div>
+              <div class="stepbottom" style="width:100%;clear:both;">
+                <div class="description" style="margin-bottom:4px;">Give access to everything listed</div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <div class="ui teal ribbon label"><i class="lock icon"></i> Requested access</div>
+
+        <div class="ui tiny fluid vertical steps unstackable">
+
+        {{if .requestedConsents }}
+
+            {{ range $index, $consent := .requestedConsents }}
+
+            <div class="step">
+              <div class="content" style="width:100%">
+
+                <div class="steptop" style="width:100%">
+                  <div class="title" style="float:left;">{{ $consent.Title }}</div>
+
+                  <div class="ui toggle checkbox" style="float:right;padding-right:1em;">
+                    <input type="checkbox" id="consent_requested_{{$consent.Key}}" name="consent[]" value="{{$consent.Name}}" tabindex="0" class="hidden">
+                    <label for="consent_requested_{{$consent.Key}}">&nbsp;</label>
+                  </div>
+
+                </div>
+                <div class="stepbottom" style="width:100%;clear:both;">
+                  <div class="description" style="margin-bottom:4px;">{{ $consent.Description }}</div>
+                  <div class="ui primary label" style="float:right;">{{ $consent.Name }}</div>
+                </div>
+
+              </div>
+            </div>
+
+            {{ end }}
+
+        {{ end }}
+        </div>
+
+      </div>
+
+      <!-- Granted -->
+      <div class="ui left aligned segment">
+
+        <div class="ui green ribbon label"><i class="unlock icon"></i> Consented access</div>
+
+        <div class="ui tiny fluid vertical steps unstackable">
+
+        {{if .grantedConsents }}
+
+            {{ range $index, $consent := .grantedConsents }}
+
+            <div class="step">
+              <div class="content" style="width:100%">
+
+                <div class="steptop" style="width:100%">
+                  <div class="title" style="float:left;">{{ $consent.Title }}</div>
+
+                  <div class="ui toggle checkbox" style="float:right;padding-right:1em;">
+                    <input type="checkbox" id="consent_granted_{{$consent.Key}}" name="consent[]" value="{{$consent.Name}}" tabindex="0" class="hidden">
+                    <label for="consent_granted_{{$consent.Key}}">&nbsp;</label>
+                  </div>
+
+                </div>
+                <div class="stepbottom" style="width:100%;clear:both;">
+                  <div class="description" style="margin-bottom:4px;">{{ $consent.Description }}</div>
+                  <div class="ui primary label" style="float:right;">{{ $consent.Name }}</div>
+                </div>
+
+              </div>
+            </div>
+
+            {{ end }}
+
+        {{ else }}
+
+        <div class="step">
+          <div class="content" style="width:100%">
+
+            <div class="steptop" style="width:100%">
+              <div class="title" style="float:left;">None</div>
+            </div>
+            <div class="stepbottom" style="width:100%;clear:both;">
+              <div class="description" style="margin-bottom:4px;">You have not previously consented access</div>
+            </div>
+
+          </div>
+        </div>
+
+        {{ end }}
+        </div>
+
+      </div>
+
+      <div style="width:100%;text-align:center;">
+        <div class="ui buttons">
+          <input type="submit" name="cancel" class="ui button" value="Cancel" />
+          <div class="or"></div>
+          <input type="submit" name="accept" class="ui positive button" value="Consent" />
+        </div>
+      </div>
+
+    </form>
+
+    <div class="ui divider hidden"></div>
+
+    <div class="white">Id: {{ .id }}</div>
+    <div class="white">Consent challenge: {{ .challenge }}</div>
+
+  </div>
+</div>
+<script type="text/javascript">
+  $(document).ready(function(){
+    $("#consent_all").click(function(){
+      $("input[id^=consent_requested_]").prop('checked', this.checked);
+    });
+  });
+</script>
+
+{{ template "htmlend" . }}
+
+
