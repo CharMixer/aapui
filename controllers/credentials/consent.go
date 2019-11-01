@@ -1,4 +1,4 @@
-package controllers
+package credentials
 
 import (
   "strings"
@@ -9,41 +9,50 @@ import (
 
   aap "github.com/charmixer/aap/client"
 
+  "github.com/charmixer/aapui/app"
   "github.com/charmixer/aapui/config"
-  "github.com/charmixer/aapui/environment"
+
+  // bulky "github.com/charmixer/bulky/client"
 )
 
 type authorizeForm struct {
-    Consents []string `form:"consents[]"`
-    Accept   string   `form:"accept"`
-    Cancel   string   `form:"cancel"`
+  Challenge string `form:"challenge" binding:"required" validate:"required,notblank"`
+  Consents []string `form:"consents[]"`
+  Accept   string   `form:"accept"`
+  Cancel   string   `form:"cancel"`
 }
 
-func ShowAuthorization(env *environment.State, route environment.Route) gin.HandlerFunc {
+type UIConsent struct {
+  Name string
+  Key string
+  Title string
+  Description string
+}
+
+func ShowConsent(env *app.Environment) gin.HandlerFunc {
   fn := func(c *gin.Context) {
 
-    log := c.MustGet(environment.LogKey).(*logrus.Entry)
+    log := c.MustGet(env.Constants.LogKey).(*logrus.Entry)
     log = log.WithFields(logrus.Fields{
-      "func": "ShowAuthorization",
+      "func": "ShowConsent",
     })
 
-    // comes from hydra redirect
-    consentChallenge := c.Query("consent_challenge")
+    consentChallenge := c.Query("consent_challenge") // Originates in oauth2 delegator redirect. (hydra)
     if consentChallenge == "" {
-      c.HTML(http.StatusNotFound, "authorize.html", gin.H{"error": "Missing consent challenge"})
-      c.Abort()
+      log.Debug("Missing consent challenge")
+      c.AbortWithStatus(http.StatusNotFound)
       return
     }
 
-    aapClient := aap.NewAapClient(env.AapApiConfig)
+    aapClient := app.AapClientUsingClientCredentials(env, c)
 
     var authorizeRequest = aap.AuthorizeRequest{
       Challenge: consentChallenge,
     }
     _, authorizeResponse, err := aap.Authorize(config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.authorizationsAuthorize"), aapClient, authorizeRequest)
     if err != nil {
-      c.HTML(http.StatusInternalServerError, "authorize.html", gin.H{"error": err.Error()})
-      c.Abort()
+      log.Debug(err.Error())
+      c.AbortWithStatus(http.StatusInternalServerError)
       return
     }
 
@@ -67,8 +76,7 @@ func ShowAuthorization(env *environment.State, route environment.Route) gin.Hand
     _, grantedScopes, err := aap.FetchConsents(config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.authorizations"), aapClient, consentRequest)
     if err != nil {
       log.Debug(err.Error())
-      c.HTML(http.StatusInternalServerError, "authorize.html", gin.H{"error": err.Error()})
-      c.Abort()
+      c.AbortWithStatus(http.StatusInternalServerError)
       return
     }
 
@@ -103,19 +111,16 @@ func ShowAuthorization(env *environment.State, route environment.Route) gin.Hand
       }
     }
     */
+    log.Debug(grantedScopes)
 
-    var requestedConsents = make(map[int]map[string]string)
-    for index, name := range diffScopes {
-      requestedConsents[index] = map[string]string{
-        "name": name,
-      }
+    var requestedConsents []UIConsent
+    for _, name := range diffScopes {
+      requestedConsents = append(requestedConsents, UIConsent{Name:name, Key:name, Title:"Test Scope", Description:"Et fint scope"})
     }
 
-    var grantedConsents = make(map[int]map[string]string)
-    for index, name := range grantedScopes {
-      grantedConsents[index] = map[string]string{
-        "name": name,
-      }
+    var grantedConsents []UIConsent
+    for _, name := range grantedScopes {
+      grantedConsents = append(grantedConsents, UIConsent{Name: name, Key:name, Title:"Test Scope", Description:"Et fint scope"})
     }
 
     var requestedAudiences = make(map[int]map[string]string)
@@ -125,17 +130,29 @@ func ShowAuthorization(env *environment.State, route environment.Route) gin.Hand
       }
     }
 
-    c.HTML(200, "authorize.html", gin.H{
+    c.HTML(200, "consent.html", gin.H{
+      "links": []map[string]string{
+        {"href": "/public/css/credentials.css"},
+      },
+      "title": "Consent",
       csrf.TemplateTag: csrf.TemplateField(c.Request),
-      "name": authorizeResponse.Subject,
-      "client_id": authorizeResponse.ClientId,
-      "requested_scopes": requestedConsents,
-      "granted_scopes": grantedConsents,
-      "requested_audiences": requestedAudiences,
-      "consent_challenge": consentChallenge,
-      "idpUiUrl": config.GetString("idpui.public.url"),
-      "aapUiUrl": config.GetString("aapui.public.url"),
+      "provider": "Consent Provider",
+      "provideraction": "Consent to application access on your behalf",
+      "challenge": consentChallenge,
+      "consentUrl": config.GetString("aapui.public.endpoints.consent"),
+
+      "id": authorizeResponse.Subject,
+      "name": "Test Name", //authorizeResponse.SubjectName,
+
+      "clientId": authorizeResponse.ClientId,
+      "clientName": "Test Client", // authorizeResponse.ClientName,
+
+      "requestedConsents": requestedConsents,
+      "grantedConsents": grantedConsents,
+
+      "requestedAudiences": requestedAudiences,
     })
+    return
   }
   return gin.HandlerFunc(fn)
 }
@@ -156,12 +173,12 @@ func Difference(a, b []string) (diff []string) {
   return
 }
 
-func SubmitAuthorization(env *environment.State, route environment.Route) gin.HandlerFunc {
+func SubmitConsent(env *app.Environment) gin.HandlerFunc {
   fn := func(c *gin.Context) {
 
-    log := c.MustGet(environment.LogKey).(*logrus.Entry)
+    log := c.MustGet(env.Constants.LogKey).(*logrus.Entry)
     log = log.WithFields(logrus.Fields{
-      "func": "SubmitAuthorization",
+      "func": "SubmitConsent",
     })
 
     var form authorizeForm
@@ -169,7 +186,7 @@ func SubmitAuthorization(env *environment.State, route environment.Route) gin.Ha
 
     consentChallenge := c.Query("consent_challenge")
 
-    aapClient := aap.NewAapClient(env.AapApiConfig)
+    aapClient := app.AapClientUsingClientCredentials(env, c)
 
     if form.Accept != "" {
 
@@ -183,8 +200,7 @@ func SubmitAuthorization(env *environment.State, route environment.Route) gin.Ha
       _, authorizeResponse, err := aap.Authorize(config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.authorizationsAuthorize"), aapClient, authorizeRequest)
       if err != nil {
         log.Debug(err.Error())
-        c.HTML(http.StatusInternalServerError, "authorize.html", gin.H{"error": err.Error()})
-        c.Abort()
+        c.AbortWithStatus(http.StatusInternalServerError)
         return
       }
 

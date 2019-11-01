@@ -26,7 +26,22 @@
   {{ end }}
 
 </head>
-<body class="minimal pushable">
+  <body>
+{{ end }}
+
+{{ define "providerheader" }}
+<h2 class="ui left aligned inverted header">
+  <img class="ui large image" src="/public/images/fingerprint.svg" />
+  <div class="content">
+    {{ .provider }}
+    <div class="sub header">{{ .provideraction }}</div>
+  </div>
+</h2>
+{{ end}}
+
+{{ define "htmlend" }}
+  </body>
+</html>
 {{ end }}
 
 {{ define "toc" }}
@@ -151,9 +166,4 @@ $(function(){
   <div class="footer__copyright">&copy; 2019</div>
   <div class="footer__signature">Made with love by pure genius</div>
 </footer>
-{{ end }}
-
-{{ define "htmlend" }}
-  </body>
-</html>
 {{ end }}
