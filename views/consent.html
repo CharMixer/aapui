@@ -95,8 +95,9 @@
 
         {{if .requestedConsents }}
 
-            {{ range $index, $consent := .requestedConsents }}
+            {{ range $index, $publisher := .requestedConsents }}
 
+            {{ range $index, $consent := $publisher }}
             <div class="step">
               <div class="content" style="width:100%">
 
@@ -104,18 +105,19 @@
                   <div class="title" style="float:left;">{{ $consent.Title }}</div>
 
                   <div class="ui toggle checkbox" style="float:right;padding-right:1em;">
-                    <input type="checkbox" id="consent_requested_{{$consent.Key}}" name="consent[]" value="{{$consent.Name}}" tabindex="0" class="hidden">
-                    <label for="consent_requested_{{$consent.Key}}">&nbsp;</label>
+                    <input type="checkbox" id="consent_requested_{{$consent.Scope}}" name="consent[]" value="{{$consent.Scope}}" tabindex="0" class="hidden">
+                    <label for="consent_requested_{{$consent.Scope}}">&nbsp;</label>
                   </div>
 
                 </div>
                 <div class="stepbottom" style="width:100%;clear:both;">
                   <div class="description" style="margin-bottom:4px;">{{ $consent.Description }}</div>
-                  <div class="ui primary label" style="float:right;">{{ $consent.Name }}</div>
+                  <div class="ui primary label" style="float:right;">{{ $consent.Scope }}</div>
                 </div>
 
               </div>
             </div>
+            {{ end }}
 
             {{ end }}
 
@@ -133,8 +135,9 @@
 
         {{if .grantedConsents }}
 
-            {{ range $index, $consent := .grantedConsents }}
+            {{ range $index, $publisher := .grantedConsents }}
 
+            {{ range $index, $consent := $publisher }}
             <div class="step">
               <div class="content" style="width:100%">
 
@@ -142,18 +145,19 @@
                   <div class="title" style="float:left;">{{ $consent.Title }}</div>
 
                   <div class="ui toggle checkbox" style="float:right;padding-right:1em;">
-                    <input type="checkbox" id="consent_granted_{{$consent.Key}}" name="consent[]" value="{{$consent.Name}}" tabindex="0" class="hidden">
-                    <label for="consent_granted_{{$consent.Key}}">&nbsp;</label>
+                    <input type="checkbox" id="consent_granted_{{$consent.Scope}}" name="consent[]" value="{{$consent.Scope}}" tabindex="0" class="hidden">
+                    <label for="consent_granted_{{$consent.Scope}}">&nbsp;</label>
                   </div>
 
                 </div>
                 <div class="stepbottom" style="width:100%;clear:both;">
                   <div class="description" style="margin-bottom:4px;">{{ $consent.Description }}</div>
-                  <div class="ui primary label" style="float:right;">{{ $consent.Name }}</div>
+                  <div class="ui primary label" style="float:right;">{{ $consent.Scope }}</div>
                 </div>
 
               </div>
             </div>
+            {{ end }}
 
             {{ end }}
 
