@@ -39,120 +39,133 @@ func ShowConsent(env *app.Environment) gin.HandlerFunc {
 
     consentChallenge := c.Query("consent_challenge") // Originates in oauth2 delegator redirect. (hydra)
     if consentChallenge == "" {
-      log.Debug("Missing consent challenge")
       c.AbortWithStatus(http.StatusNotFound)
       return
     }
 
     aapClient := app.AapClientUsingClientCredentials(env, c)
 
-    var authorizeRequest = aap.AuthorizeRequest{
-      Challenge: consentChallenge,
-    }
-    _, authorizeResponse, err := aap.Authorize(config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.authorizationsAuthorize"), aapClient, authorizeRequest)
+    var authorizeRequest = aap.CreateConsentsAuthorizeRequest{ Challenge: consentChallenge }
+    status, responses, err := aap.CreateConsentsAuthorize(aapClient, config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.consents.authorize"), authorizeRequest)
     if err != nil {
       log.Debug(err.Error())
       c.AbortWithStatus(http.StatusInternalServerError)
       return
     }
 
-    if authorizeResponse.Authorized {
-      log.WithFields(logrus.Fields{"redirect_to": authorizeResponse.RedirectTo}).Debug("Redirecting")
-      c.Redirect(http.StatusFound, authorizeResponse.RedirectTo)
-      c.Abort()
-      return
-    }
+    if status == http.StatusOK {
 
-    // NOTE: App requested more scopes of user than was previously granted to the app.
-    var requestedScopes []string = authorizeResponse.RequestedScopes
+      var authorization aap.Authorization
 
-    // Look for already granted consents for the id (sub) and app (client_id), so we can create the diffenence set and only present user with what is missing.
-    consentRequest := aap.ConsentRequest{
-      Subject: authorizeResponse.Subject,
-      ClientId: authorizeResponse.ClientId,
-      RequestedAudiences: authorizeResponse.RequestedAudiences,
-      RequestedScopes: requestedScopes, // Only look for permissions that was requested (query optimization)
-    }
-    _, grantedScopes, err := aap.FetchConsents(config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.authorizations"), aapClient, consentRequest)
-    if err != nil {
-      log.Debug(err.Error())
-      c.AbortWithStatus(http.StatusInternalServerError)
-      return
-    }
-
-    strGrantedScopes := strings.Join(grantedScopes, ",")
-    log.WithFields(logrus.Fields{
-      "client_id": authorizeResponse.ClientId,
-      "subject":  authorizeResponse.Subject,
-      "scopes": strGrantedScopes,
-    }).Debug("Found granted scopes")
-
-    diffScopes := Difference(requestedScopes, grantedScopes)
-
-    log.WithFields(logrus.Fields{"fixme": 1}).Debug("Create identity property which decides if auto consent should be triggered.");
-    /*
-    if len(diffScopes) <= 0 {
-      // Nothing to accept everything already accepted.
-
-      environment.DebugLog(route.LogId, "ShowAuthorization", "Auto granted scopes: " + strings.Join(requestedScopes, ","), requestId)
-      authorizeRequest := aap.AuthorizeRequest{
-        Challenge: consentChallenge,
-        GrantScopes: requestedScopes,
+      var resp idp.CreateConsentsAuthorizeResponse
+      status, restErr := bulky.Unmarshal(0, responses, &resp)
+      // FIXME handle rest errors if any.
+      if status == 200 {
+        authorization := resp
       }
-      authorizationsAuthorizeResponse, _ := aap.Authorize(config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.authorizationsAuthorize"), aapClient, authorizeRequest)
-      if  authorizationsAuthorizeResponse.Authorized {
-        c.Redirect(302, authorizationsAuthorizeResponse.RedirectTo)
+
+      if authorization.Authorized {
+        log.WithFields(logrus.Fields{ "redirect_to": authorization.RedirectTo }).Debug("Redirecting")
+        c.Redirect(http.StatusFound, authorization.RedirectTo)
         c.Abort()
         return
-      } else {
-        environment.DebugLog(route.LogId, "ShowAuthorization", "Auto granting scopes failed!", requestId)
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to auto grant scopes."}) // FIXME: better error handling
+      }
+
+      // NOTE: App requested more scopes of user than was previously granted to the app.
+      var requestedScopes []string = authorization.RequestedScopes
+
+      // Look for already granted consents for the id (sub) and app (client_id), so we can create the diffenence set and only present user with what is missing.
+      consentRequest := aap.ConsentRequest{
+        Subject: authorizeResponse.Subject,
+        ClientId: authorizeResponse.ClientId,
+        RequestedAudiences: authorizeResponse.RequestedAudiences,
+        RequestedScopes: requestedScopes, // Only look for permissions that was requested (query optimization)
+      }
+      _, grantedScopes, err := aap.FetchConsents(config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.consents"), aapClient, consentRequest)
+      if err != nil {
+        log.Debug(err.Error())
+        c.AbortWithStatus(http.StatusInternalServerError)
         return
       }
-    }
-    */
-    log.Debug(grantedScopes)
 
-    var requestedConsents []UIConsent
-    for _, name := range diffScopes {
-      requestedConsents = append(requestedConsents, UIConsent{Name:name, Key:name, Title:"Test Scope", Description:"Et fint scope"})
-    }
+      strGrantedScopes := strings.Join(grantedScopes, ",")
+      log.WithFields(logrus.Fields{
+        "client_id": authorizeResponse.ClientId,
+        "subject":  authorizeResponse.Subject,
+        "scopes": strGrantedScopes,
+      }).Debug("Found granted scopes")
 
-    var grantedConsents []UIConsent
-    for _, name := range grantedScopes {
-      grantedConsents = append(grantedConsents, UIConsent{Name: name, Key:name, Title:"Test Scope", Description:"Et fint scope"})
-    }
+      diffScopes := Difference(requestedScopes, grantedScopes)
 
-    var requestedAudiences = make(map[int]map[string]string)
-    for index, aud := range consentRequest.RequestedAudiences {
-      requestedAudiences[index] = map[string]string{
-        "aud": aud,
+      log.WithFields(logrus.Fields{"fixme": 1}).Debug("Create identity property which decides if auto consent should be triggered."); // First Party!
+      /*
+      if len(diffScopes) <= 0 {
+        // Nothing to accept everything already accepted.
+
+        environment.DebugLog(route.LogId, "ShowAuthorization", "Auto granted scopes: " + strings.Join(requestedScopes, ","), requestId)
+        authorizeRequest := aap.AuthorizeRequest{
+          Challenge: consentChallenge,
+          GrantScopes: requestedScopes,
+        }
+        authorizeResponse, _ := aap.Authorize(config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.consents.authorize"), aapClient, authorizeRequest)
+        if  authorizeResponse.Authorized {
+          c.Redirect(302, authorizeResponse.RedirectTo)
+          c.Abort()
+          return
+        } else {
+          environment.DebugLog(route.LogId, "ShowAuthorization", "Auto granting scopes failed!", requestId)
+          c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to auto grant scopes."}) // FIXME: better error handling
+          return
+        }
       }
+      */
+      log.Debug(grantedScopes)
+
+      var requestedConsents []UIConsent
+      for _, name := range diffScopes {
+        requestedConsents = append(requestedConsents, UIConsent{Name:name, Key:name, Title:"Test Scope", Description:"Et fint scope"})
+      }
+
+      var grantedConsents []UIConsent
+      for _, name := range grantedScopes {
+        grantedConsents = append(grantedConsents, UIConsent{Name: name, Key:name, Title:"Test Scope", Description:"Et fint scope"})
+      }
+
+      var requestedAudiences = make(map[int]map[string]string)
+      for index, aud := range consentRequest.RequestedAudiences {
+        requestedAudiences[index] = map[string]string{
+          "aud": aud,
+        }
+      }
+
+      c.HTML(200, "consent.html", gin.H{
+        "links": []map[string]string{
+          {"href": "/public/css/credentials.css"},
+        },
+        "title": "Consent",
+        csrf.TemplateTag: csrf.TemplateField(c.Request),
+        "provider": "Consent Provider",
+        "provideraction": "Consent to application access on your behalf",
+        "challenge": consentChallenge,
+        "consentUrl": config.GetString("aapui.public.endpoints.consent"),
+
+        "id": authorizeResponse.Subject,
+        "name": "Test Name", //authorizeResponse.SubjectName,
+
+        "clientId": authorizeResponse.ClientId,
+        "clientName": "Test Client", // authorizeResponse.ClientName,
+
+        "requestedConsents": requestedConsents,
+        "grantedConsents": grantedConsents,
+
+        "requestedAudiences": requestedAudiences,
+      })
+      return
     }
 
-    c.HTML(200, "consent.html", gin.H{
-      "links": []map[string]string{
-        {"href": "/public/css/credentials.css"},
-      },
-      "title": "Consent",
-      csrf.TemplateTag: csrf.TemplateField(c.Request),
-      "provider": "Consent Provider",
-      "provideraction": "Consent to application access on your behalf",
-      "challenge": consentChallenge,
-      "consentUrl": config.GetString("aapui.public.endpoints.consent"),
-
-      "id": authorizeResponse.Subject,
-      "name": "Test Name", //authorizeResponse.SubjectName,
-
-      "clientId": authorizeResponse.ClientId,
-      "clientName": "Test Client", // authorizeResponse.ClientName,
-
-      "requestedConsents": requestedConsents,
-      "grantedConsents": grantedConsents,
-
-      "requestedAudiences": requestedAudiences,
-    })
-    return
+    // Deny by default
+    log.Debug(responses)
+    c.AbortWithStatus(http.StatusForbidden)
   }
   return gin.HandlerFunc(fn)
 }
@@ -197,7 +210,7 @@ func SubmitConsent(env *app.Environment) gin.HandlerFunc {
         Challenge: consentChallenge,
         // NOTE: Do not add GrantScopes here as it will grant them instead of reading data from the challenge. (This is a masked Read call)
       }
-      _, authorizeResponse, err := aap.Authorize(config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.authorizationsAuthorize"), aapClient, authorizeRequest)
+      _, authorizeResponse, err := aap.Authorize(config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.consents.authorize"), aapClient, authorizeRequest)
       if err != nil {
         log.Debug(err.Error())
         c.AbortWithStatus(http.StatusInternalServerError)
@@ -215,7 +228,7 @@ func SubmitConsent(env *app.Environment) gin.HandlerFunc {
         RequestedScopes: authorizeResponse.RequestedScopes, // Send what was requested just in case we need it.
         RequestedAudiences: authorizeResponse.RequestedAudiences,
       }
-      _, _ /* consentResponse */, err = aap.CreateConsents(config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.authorizations"), aapClient, consentRequest)
+      _, _ /* consentResponse */, err = aap.CreateConsents(config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.consents"), aapClient, consentRequest)
       if err != nil {
         log.Debug(err.Error())
         log.WithFields(logrus.Fields{"fixme": 1}).Debug("Signal errors to the authorization controller using session flash messages")
@@ -229,9 +242,9 @@ func SubmitConsent(env *app.Environment) gin.HandlerFunc {
         Challenge: consentChallenge,
         GrantScopes: consents,
       }
-      _, authorizationsAuthorizeResponse, _ := aap.Authorize(config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.authorizationsAuthorize"), aapClient, authorizeRequest)
-      if  authorizationsAuthorizeResponse.Authorized {
-        c.Redirect(http.StatusFound, authorizationsAuthorizeResponse.RedirectTo)
+      _, authorizeResponse, _ := aap.Authorize(config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.consents.authorize"), aapClient, authorizeRequest)
+      if  authorizeResponse.Authorized {
+        c.Redirect(http.StatusFound, authorizeResponse.RedirectTo)
         c.Abort()
         return
       }
@@ -241,7 +254,7 @@ func SubmitConsent(env *app.Environment) gin.HandlerFunc {
     rejectRequest := aap.RejectRequest{
       Challenge: consentChallenge,
     }
-    _, rejectResponse, _ := aap.Reject(config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.authorizationsReject"), aapClient, rejectRequest)
+    _, rejectResponse, _ := aap.Reject(config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.consents.reject"), aapClient, rejectRequest)
     c.Redirect(http.StatusFound, rejectResponse.RedirectTo)
     c.Abort()
   }
