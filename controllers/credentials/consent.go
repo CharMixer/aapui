@@ -1,7 +1,6 @@
 package credentials
 
 import (
-  "strings"
   "net/http"
   "github.com/sirupsen/logrus"
   "github.com/gin-gonic/gin"
@@ -23,11 +22,7 @@ type authorizeForm struct {
 }
 
 type UIConsent struct {
-  aap.Publish
-}
-
-type PublisherScope struct {
-  Publisher, Scope string
+  aap.ConsentRequest
 }
 
 func ShowConsent(env *app.Environment) gin.HandlerFunc {
@@ -46,8 +41,8 @@ func ShowConsent(env *app.Environment) gin.HandlerFunc {
 
     aapClient := app.AapClientUsingClientCredentials(env, c)
 
-    var authorizeRequest = []aap.CreateConsentsAuthorizeRequest{ {Challenge: consentChallenge} }
-    status, responses, err := aap.CreateConsentsAuthorize(aapClient, config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.consents.authorize"), authorizeRequest)
+    var authorizeRequest = []aap.ReadConsentsAuthorizeRequest{ {Challenge: consentChallenge} }
+    status, responses, err := aap.ReadConsentsAuthorize(aapClient, config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.consents.authorize"), authorizeRequest)
     if err != nil {
       log.Debug(err.Error())
       c.AbortWithStatus(http.StatusInternalServerError)
@@ -56,7 +51,7 @@ func ShowConsent(env *app.Environment) gin.HandlerFunc {
 
     if status == http.StatusOK {
 
-      var authorization aap.CreateConsentsAuthorizeResponse
+      var authorization aap.ReadConsentsAuthorizeResponse
       status, restErr := bulky.Unmarshal(0, responses, &authorization)
       if len(restErr) > 0 {
         for _,e := range restErr {
@@ -78,165 +73,7 @@ func ShowConsent(env *app.Environment) gin.HandlerFunc {
 
         // NOTE: App requested more scopes of user than was previously granted to the app according to hydra.
 
-        var publisherIds []string = authorization.RequestedAudiences
-        mapPublisherIds := make(map[string]bool)
-        for _, publisherId := range publisherIds {
-          mapPublisherIds[publisherId] = true
-        }
-
-        var requestedScopes []string = authorization.RequestedScopes
-        var mapRequestedScopes map[string]bool = make(map[string]bool)
-        for _, scope := range requestedScopes {
-          mapRequestedScopes[scope] = true
-        }
-
-        // Fetch subscription scopes for the client (client is subscribed to published scopes, meaning the client is allowed to request access token for the published scopes)
-
-
-        var readSubscriptionsRequests []aap.ReadSubscriptionsRequest
-
-        for _, aud := range publisherIds {
-          readSubscriptionsRequests = append(readSubscriptionsRequests, aap.ReadSubscriptionsRequest{ Subscriber:authorization.ClientId, Scopes: requestedScopes, Publisher: aud })
-        }
-
-        if len(readSubscriptionsRequests) <= 0 {
-          readSubscriptionsRequests = append(readSubscriptionsRequests, aap.ReadSubscriptionsRequest{ Subscriber:authorization.ClientId, Scopes: requestedScopes })
-        }
-
-        status, responses, err = aap.ReadSubscriptions(aapClient, config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.subscriptions.collection"), readSubscriptionsRequests)
-        if err != nil {
-          log.Debug(err.Error())
-          c.AbortWithStatus(http.StatusInternalServerError)
-          return
-        }
-
-        if status != http.StatusOK {
-          return
-        }
-
-        // should be bulky stuff
-        var countSubscriptions = 0
-        var mapPublisherScopes = make(map[string][]string)
-        var mapConsents = make(map[PublisherScope]bool)
-        for i,_ := range readSubscriptionsRequests {
-          var subs aap.ReadSubscriptionsResponse
-          status, restErr := bulky.Unmarshal(i, responses, &subs)
-          if len(restErr) > 0 {
-            for _,e := range restErr {
-              log.Debug("Rest error: " + e.Error)
-            }
-            c.AbortWithStatus(http.StatusInternalServerError)
-            return
-          }
-
-          if status == http.StatusOK {
-            for _,s := range subs {
-              mapPublisherScopes[s.Publisher] = append(mapPublisherScopes[s.Publisher], s.Scope)
-
-              // initialize all consents with false - will be updated from GET /consents later
-              mapConsents[PublisherScope{s.Publisher, s.Scope}] = false
-
-              countSubscriptions = countSubscriptions + 1
-            }
-          }
-        }
-
-        if countSubscriptions <= 0 {
-          log.WithFields(logrus.Fields{ "scopes":strings.Join(authorization.RequestedScopes, " ") }).Debug("Not allowed to request any scopes")
-          c.AbortWithStatus(http.StatusForbidden)
-          return
-        }
-
-
-
-        // Fetch publishings for the publisher (publisher published scopes) - needed to get title and description to render.
-
-        var readPublishingsRequests []aap.ReadPublishesRequest
-
-        for publisher, scopes := range mapPublisherScopes {
-          readPublishingsRequests = append(readPublishingsRequests, aap.ReadPublishesRequest{Publisher: publisher, Scopes: scopes})
-        }
-        status, responses, err = aap.ReadPublishes(aapClient, config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.publishes"), readPublishingsRequests)
-        if err != nil {
-          log.Debug(err.Error())
-          c.AbortWithStatus(http.StatusInternalServerError)
-          return
-        }
-
-        if status != http.StatusOK {
-          return
-        }
-
-
-
-        // should be bulky stuff
-        mapPublishingsDefinitions := make(map[PublisherScope]aap.Publish)
-        var countPublishings = 0
-        for i,_ := range readPublishingsRequests {
-          var publishings aap.ReadPublishesResponse
-          status, restErr := bulky.Unmarshal(i, responses, &publishings)
-          if len(restErr) > 0 {
-            for _,e := range restErr {
-              log.Debug("Rest error: " + e.Error)
-            }
-            c.AbortWithStatus(http.StatusInternalServerError)
-            return
-          }
-
-          if status == http.StatusOK {
-            for _,p := range publishings {
-              mapPublishingsDefinitions[PublisherScope{p.Publisher, p.Scope}] = p
-              countPublishings = countPublishings + 1
-            }
-          }
-        }
-
-
-        // Fetch consents for the subject to the subscriber (client). Did subject already consent to client requesting access tokens for the scopes on subject behalf.
-        var readConsentsRequests []aap.ReadConsentsRequest
-        for publisher, scopes := range mapPublisherScopes {
-          readConsentsRequests = append(readConsentsRequests, aap.ReadConsentsRequest{
-            Reference: authorization.Subject,
-            Subscriber: authorization.ClientId,
-            Publisher: publisher,
-            Scopes: scopes,
-          })
-        }
-
-        status, responses, err = aap.ReadConsents(aapClient, config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.consents.collection"), readConsentsRequests)
-        if err != nil {
-          log.Debug(err.Error())
-          c.AbortWithStatus(http.StatusInternalServerError)
-          return
-        }
-
-        if status != http.StatusOK {
-          return
-        }
-
-        // should be bulky stuff
-        for i,_ := range readConsentsRequests {
-          var consents aap.ReadConsentsResponse
-          status, restErr := bulky.Unmarshal(i, responses, &consents)
-          if len(restErr) > 0 {
-            for _,e := range restErr {
-              log.Debug("Rest error: " + e.Error)
-            }
-            c.AbortWithStatus(http.StatusInternalServerError)
-            return
-          }
-
-          if status == http.StatusOK {
-            for _,c := range consents {
-              mapConsents[PublisherScope{c.Publisher, c.Scope}] = true
-            }
-          }
-        }
-
-
-
-
-/*
+/* TODO: MOVE TO BACKEND
 
         // Calculate difference set and only asked for consent to scopes that are not already granted.
         // Look for already consented scopes in consent model for request.
@@ -288,18 +125,15 @@ func ShowConsent(env *app.Environment) gin.HandlerFunc {
         var requestedConsents map[string][]UIConsent = make(map[string][]UIConsent) // Requested scopes grouped by audience
         var grantedConsents map[string][]UIConsent = make(map[string][]UIConsent) // Granted scopes grouped by audience
 
-        for publisherScope, consented := range mapConsents {
+        for _, cr := range authorization.ConsentRequests {
 
-          publisher := publisherScope.Publisher
-          publishDefinition := mapPublishingsDefinitions[publisherScope]
-
-          if consented == true {
-            grantedConsents[publisher] = append(grantedConsents[publisher], UIConsent{ publishDefinition })
+          if cr.Consented == true {
+            grantedConsents[cr.Audience] = append(grantedConsents[cr.Audience], UIConsent{ cr })
             continue
           }
 
           // deny by default
-          requestedConsents[publisher] = append(requestedConsents[publisher], UIConsent{ publishDefinition })
+          requestedConsents[cr.Audience] = append(requestedConsents[cr.Audience], UIConsent{ cr })
         }
 
         c.HTML(200, "consent.html", gin.H{
@@ -354,6 +188,11 @@ func Difference(a, b []string) (diff []string) {
 
 func SubmitConsent(env *app.Environment) gin.HandlerFunc {
   fn := func(c *gin.Context) {
+
+// Lav POST aap/consents
+// Lav POST aap/consents/authorize (challenge), authorize skal lave opslag i neo4j GET aap/consents og kalde accept på den som er consented til hydra for subset af requested scopes i hydra. // UI må ikke fucke med hydra.
+
+
 /*
     log := c.MustGet(env.Constants.LogKey).(*logrus.Entry)
     log = log.WithFields(logrus.Fields{
