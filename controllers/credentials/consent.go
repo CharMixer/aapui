@@ -2,27 +2,38 @@ package credentials
 
 import (
   "net/http"
+  "net/url"
   "github.com/sirupsen/logrus"
   "github.com/gin-gonic/gin"
   "github.com/gorilla/csrf"
+  "github.com/go-playground/form"
 
   aap "github.com/charmixer/aap/client"
 
   "github.com/charmixer/aapui/app"
   "github.com/charmixer/aapui/config"
+  "github.com/charmixer/aapui/utils"
 
   bulky "github.com/charmixer/bulky/client"
 )
 
 type authorizeForm struct {
-  Challenge string `form:"challenge" binding:"required" validate:"required,notblank"`
-  Consents []string `form:"consents[]"`
-  Accept   string   `form:"accept"`
-  Cancel   string   `form:"cancel"`
+  Challenge string
+  Accept string
+  Cancel string
+  Consents []struct {
+    Audience string
+    Scope string
+    Consented bool
+  }
 }
 
 type UIConsent struct {
   aap.ConsentRequest
+}
+
+type AudienceScope struct {
+  Audience, Scope string
 }
 
 func ShowConsent(env *app.Environment) gin.HandlerFunc {
@@ -170,99 +181,186 @@ func ShowConsent(env *app.Environment) gin.HandlerFunc {
   return gin.HandlerFunc(fn)
 }
 
-// Set Difference: A - B
-func Difference(a, b []string) (diff []string) {
-  m := make(map[string]bool)
-
-  for _, item := range b {
-    m[item] = true
-  }
-
-  for _, item := range a {
-    if _, ok := m[item]; !ok {
-      diff = append(diff, item)
-    }
-  }
-  return
-}
-
 func SubmitConsent(env *app.Environment) gin.HandlerFunc {
   fn := func(c *gin.Context) {
 
-// Lav POST aap/consents
-// Lav POST aap/consents/authorize (challenge), authorize skal lave opslag i neo4j GET aap/consents og kalde accept på den som er consented til hydra for subset af requested scopes i hydra. // UI må ikke fucke med hydra.
-
-
-/*
     log := c.MustGet(env.Constants.LogKey).(*logrus.Entry)
     log = log.WithFields(logrus.Fields{
       "func": "SubmitConsent",
     })
 
-    var form authorizeForm
-    c.Bind(&form)
+    var decoder *form.Decoder = form.NewDecoder()
 
-    consentChallenge := c.Query("consent_challenge")
+    var form authorizeForm
+    c.Request.ParseForm()
+
+    err := decoder.Decode(&form, c.Request.Form)
+    if err != nil {
+      log.Panic(err)
+      c.AbortWithStatus(http.StatusBadRequest)
+      return
+    }
+
+    // Fetch the url that the submit happen to, so we can redirect back to it.
+    q := url.Values{}
+    q.Add("consent_challenge", form.Challenge)
+    submitUrl, err := utils.FetchSubmitUrlFromRequest(c.Request, &q)
+    if err != nil {
+      log.Debug(err.Error())
+      c.AbortWithStatus(http.StatusInternalServerError)
+      return
+    }
 
     aapClient := app.AapClientUsingClientCredentials(env, c)
 
+    if form.Cancel != "" {
+
+      // Subject rejected the challenge.
+      var rejectRequests = []aap.CreateConsentsRejectRequest{ {Challenge: form.Challenge} }
+      status, responses, err := aap.CreateConsentsReject(aapClient, config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.consents.reject"), rejectRequests)
+      if err != nil {
+       log.Debug(err.Error())
+       c.AbortWithStatus(http.StatusInternalServerError)
+       return
+      }
+
+      if status != http.StatusOK {
+       log.WithFields(logrus.Fields{ "challenge":form.Challenge, "status":status }).Debug("Request failed")
+       c.AbortWithStatus(http.StatusInternalServerError)
+       return
+      }
+
+      var authorization aap.CreateConsentsRejectResponse
+      status, restErr := bulky.Unmarshal(0, responses, &authorization)
+      if len(restErr) > 0 {
+        for _,e := range restErr {
+          log.Debug("Rest error: " + e.Error)
+        }
+        c.AbortWithStatus(http.StatusInternalServerError)
+        return
+      }
+
+      if status == http.StatusOK {
+        // Rejected, successfully
+        log.WithFields(logrus.Fields{ "redirect_to": authorization.RedirectTo }).Debug("Redirecting")
+        c.Redirect(http.StatusFound, authorization.RedirectTo)
+        c.Abort()
+        return
+      }
+
+      // Deny by default, reject
+      log.WithFields(logrus.Fields{ "challenge":form.Challenge, "status":status }).Debug("Reject failed")
+      c.AbortWithStatus(http.StatusInternalServerError)
+      return
+    }
+
     if form.Accept != "" {
 
-      consents := form.Consents
-
-      // To prevent tampering we ask for the authorzation data again to get client_id, subject etc.
-      var authorizeRequest = aap.AuthorizeRequest{
-        Challenge: consentChallenge,
-        // NOTE: Do not add GrantScopes here as it will grant them instead of reading data from the challenge. (This is a masked Read call)
-      }
-      _, authorizeResponse, err := aap.Authorize(config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.consents.authorize"), aapClient, authorizeRequest)
+      // To prevent tampering read data from challenge
+      var authorizeRequest = []aap.ReadConsentsAuthorizeRequest{ {Challenge: form.Challenge} }
+      status, responses, err := aap.ReadConsentsAuthorize(aapClient, config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.consents.authorize"), authorizeRequest)
       if err != nil {
         log.Debug(err.Error())
         c.AbortWithStatus(http.StatusInternalServerError)
         return
       }
 
-      revokedConsents := Difference(authorizeResponse.RequestedScopes, consents)
+      if status == http.StatusOK {
 
-      // Grant the accepted scopes to the client in Aap
-      consentRequest := aap.ConsentRequest{
-        Subject: authorizeResponse.Subject,
-        ClientId: authorizeResponse.ClientId,
-        GrantedScopes: consents,
-        RevokedScopes: revokedConsents,
-        RequestedScopes: authorizeResponse.RequestedScopes, // Send what was requested just in case we need it.
-        RequestedAudiences: authorizeResponse.RequestedAudiences,
-      }
-      _, _, err = aap.CreateConsents(config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.consents"), aapClient, consentRequest)
-      if err != nil {
-        log.Debug(err.Error())
-        log.WithFields(logrus.Fields{"fixme": 1}).Debug("Signal errors to the authorization controller using session flash messages")
-        c.Redirect(http.StatusFound, "/authorize?consent_challenge=" + consentChallenge)
-        c.Abort()
-        return
+        var authorization aap.ReadConsentsAuthorizeResponse
+        status, restErr := bulky.Unmarshal(0, responses, &authorization)
+        if len(restErr) > 0 {
+          for _,e := range restErr {
+            log.Debug("Rest error: " + e.Error)
+          }
+          c.AbortWithStatus(http.StatusInternalServerError)
+          return
+        }
+
+        if status == http.StatusOK {
+
+          // Sanity check input data using this map.
+          mapConsentableConsentRequests := make(map[AudienceScope]aap.ConsentRequest)
+          for _, cr := range authorization.ConsentRequests {
+            mapConsentableConsentRequests[AudienceScope{cr.Audience, cr.Scope}] = cr
+          }
+
+          var consentRequests []aap.CreateConsentsRequest
+          for _, consent := range form.Consents {
+            if consent.Consented == true {
+              cr := mapConsentableConsentRequests[AudienceScope{consent.Audience, consent.Scope}]
+              if cr != (aap.ConsentRequest{}) && cr.Consented == false {
+                consentRequests = append(consentRequests, aap.CreateConsentsRequest{
+                  Reference: authorization.Subject,
+                  Subscriber: authorization.ClientId,
+                  Publisher: cr.Audience,
+                  Scope: cr.Scope,
+                })
+              }
+            }
+          }
+
+          if len(consentRequests) > 0 {
+
+            // Update consent model
+            status, _, err = aap.CreateConsents(aapClient, config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.consents.collection"), consentRequests)
+            if err != nil {
+              log.Debug(err.Error())
+              c.AbortWithStatus(http.StatusInternalServerError)
+              return
+            }
+
+            if status == http.StatusOK {
+
+              // Update hydra model
+              var authorizeRequest = []aap.CreateConsentsAuthorizeRequest{ {Challenge: form.Challenge} }
+              status, responses, err := aap.CreateConsentsAuthorize(aapClient, config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.consents.authorize"), authorizeRequest)
+              if err != nil {
+                log.Debug(err.Error())
+                c.AbortWithStatus(http.StatusInternalServerError)
+                return
+              }
+
+              if status == http.StatusOK {
+
+                var authorization aap.CreateConsentsAuthorizeResponse
+                status, restErr := bulky.Unmarshal(0, responses, &authorization)
+                if len(restErr) > 0 {
+                  for _,e := range restErr {
+                    log.Debug("Rest error: " + e.Error)
+                  }
+                  c.AbortWithStatus(http.StatusInternalServerError)
+                  return
+                }
+
+                if status == http.StatusOK {
+
+                  // Accept success redirect
+                  if authorization.Authorized == true {
+                    log.WithFields(logrus.Fields{ "redirect_to": authorization.RedirectTo }).Debug("Redirecting")
+                    c.Redirect(http.StatusFound, authorization.RedirectTo)
+                    c.Abort()
+                    return
+                  }
+
+                }
+
+              }
+
+            }
+
+          }
+
+        }
+
       }
 
-      // Grant the accepted scopes to the client in Hydra
-      authorizeRequest = aap.AuthorizeRequest{
-        Challenge: consentChallenge,
-        GrantScopes: consents,
-      }
-      _, authorizeResponse, _ := aap.Authorize(config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.consents.authorize"), aapClient, authorizeRequest)
-      if  authorizeResponse.Authorized {
-        c.Redirect(http.StatusFound, authorizeResponse.RedirectTo)
-        c.Abort()
-        return
-      }
     }
 
-    // Deny by default.
-    rejectRequest := aap.RejectRequest{
-      Challenge: consentChallenge,
-    }
-    _, rejectResponse, _ := aap.Reject(config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.consents.reject"), aapClient, rejectRequest)
-    c.Redirect(http.StatusFound, rejectResponse.RedirectTo)
+    // Deny by default. (redirect back to controller with errors)
+    log.WithFields(logrus.Fields{"redirect_to": submitUrl}).Debug("Redirecting")
+    c.Redirect(http.StatusFound, submitUrl)
     c.Abort()
-    */
   }
   return gin.HandlerFunc(fn)
 }
