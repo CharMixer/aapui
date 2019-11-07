@@ -42,7 +42,6 @@
             <div class="description">The application {{ .clientName }} is requesting access on your behalf</div>
           </div>
         </div>
-
         <div class="step">
           <i class="thumbs up icon"></i>
           <div class="content">
@@ -50,7 +49,6 @@
             <div class="description">You may choose the access to give the application</div>
           </div>
         </div>
-
       </div>
 
       <div class="ui divider hidden"></div>
@@ -91,97 +89,91 @@
 
         <div class="ui teal ribbon label"><i class="lock icon"></i> Requested access</div>
 
-        <div class="ui tiny fluid vertical steps unstackable">
-
         {{if .requestedConsents }}
+          <div class="ui tiny fluid vertical steps unstackable">
+            {{ range $idx, $consent := .requestedConsents }}
+              <div class="step">
+                <div class="content" style="width:100%">
+                  <input type="hidden" name="Consents[{{$idx}}].Scope" value="{{$consent.Scope}}"/>
+                  <input type="hidden" name="Consents[{{$idx}}].Audience" value="{{$consent.Audience}}"/>
 
-            {{ range $index, $publisher := .requestedConsents }}
+                  <div class="steptop" style="width:100%">
+                    <div class="title" style="float:left;">{{ $consent.Title }}</div>
 
-            {{ range $idx, $consent := $publisher }}
-            <div class="step">
-              <div class="content" style="width:100%">
-                <input type="hidden" name="Consents[{{$idx}}].Scope" value="{{$consent.Scope}}"/>
-                <input type="hidden" name="Consents[{{$idx}}].Audience" value="{{$consent.Audience}}"/>
+                    <div class="ui toggle checkbox" style="float:right;padding-right:1em;">
+                      <input type="checkbox" id="Consents[{{$idx}}].Consented" name="Consents[{{$idx}}].Consented" tabindex="0" class="hidden challengedConsents">
+                      <label for="Consents[{{$idx}}].Consented">&nbsp;</label>
+                    </div>
 
-                <div class="steptop" style="width:100%">
-                  <div class="title" style="float:left;">{{ $consent.Title }}</div>
+                  </div>
 
-                  <div class="ui toggle checkbox" style="float:right;padding-right:1em;">
-                    <input type="checkbox" name="Consents[{{$idx}}].Consented" tabindex="0" class="hidden challengedConsents">
-                    <label for="consent_requested_{{$consent.Scope}}">&nbsp;</label>
+                  <div class="stepbottom" style="width:100%;clear:both;">
+                    <div class="description" style="margin-bottom:4px;padding-top:4px;">{{ $consent.Description }}</div>
+                    <div style="margin-top:10px;">
+                      <div style="float:left;"><span class="ui small grey text"><i class="server icon"></i> {{ $consent.Audience }}</span></div>
+                      <div style="float:right;" class="ui primary small label">{{ $consent.Scope }}</div>
+                    </div>
                   </div>
 
                 </div>
-                <div class="stepbottom" style="width:100%;clear:both;">
-                  <div class="description" style="margin-bottom:4px;padding-top:4px;">{{ $consent.Description }}</div>
-                  <div class="ui primary small label" style="margin-top:10px; float:right;">{{ $consent.Scope }}</div>
-                </div>
-
               </div>
-            </div>
             {{ end }}
-
-            {{ end }}
-
-        {{ end }}
-        </div>
-
-      </div>
-
-      <!-- Granted -->
-      <div class="ui left aligned segment">
-
-        <div class="ui green ribbon label"><i class="unlock icon"></i> Consented access</div>
-
-        <div class="ui tiny fluid vertical steps unstackable">
-
-        {{if .grantedConsents }}
-
-            {{ range $index, $publisher := .grantedConsents }}
-
-            {{ range $index, $consent := $publisher }}
-            <div class="step">
-              <div class="content" style="width:100%">
-
-                <div class="steptop" style="width:100%">
-                  <div class="title" style="float:left;">{{ $consent.Title }}</div>
-
-                  <div class="ui toggle checkbox" style="float:right;padding-right:1em;">
-                    <input type="checkbox" id="consent_granted_{{$consent.Scope}}" name="consent[]" value="{{$consent.Scope}}" tabindex="0" class="hidden">
-                    <label for="consent_granted_{{$consent.Scope}}">&nbsp;</label>
-                  </div>
-
-                </div>
-                <div class="stepbottom" style="width:100%;clear:both;">
-                  <div class="description" style="margin-bottom:4px;">{{ $consent.Description }}</div>
-                  <div class="ui primary small label" style="margin-top:10px; float:right;">{{ $consent.Scope }}</div>
-                </div>
-
-              </div>
-            </div>
-            {{ end }}
-
-            {{ end }}
-
-        {{ else }}
-
-        <div class="step">
-          <div class="content" style="width:100%">
-
-            <div class="steptop" style="width:100%">
-              <div class="title" style="float:left;">None</div>
-            </div>
-            <div class="stepbottom" style="width:100%;clear:both;">
-              <div class="description" style="margin-bottom:4px;">You have not previously consented access</div>
-            </div>
-
           </div>
-        </div>
-
+        {{ else }}
+          <!-- Should never happen -->
         {{ end }}
-        </div>
 
       </div>
+
+
+      <!-- Consented -->
+       <div class="ui left aligned segment">
+
+         <div class="ui green ribbon label"><i class="lock icon"></i> Consented access</div>
+
+         {{if .grantedConsents }}
+           <div class="ui tiny fluid vertical steps unstackable">
+             {{ range $idx, $consent := .grantedConsents }}
+               <div class="step">
+                 <div class="content" style="width:100%">
+                   <input type="hidden" name="GrantedConsents[{{$idx}}].Scope" value="{{$consent.Scope}}"/>
+                   <input type="hidden" name="GrantedConsents[{{$idx}}].Audience" value="{{$consent.Audience}}"/>
+
+                   <div class="steptop" style="width:100%">
+                     <div class="title" style="float:left;">{{ $consent.Title }}</div>
+                   </div>
+
+                   <div class="stepbottom" style="width:100%;clear:both;">
+                     <div class="description" style="margin-bottom:4px;padding-top:4px;">{{ $consent.Description }}</div>
+                     <div style="margin-top:10px;">
+                       <div style="float:left;"><span class="ui small grey text"><i class="server icon"></i> {{ $consent.Audience }}</span></div>
+                       <div style="float:right;" class="ui primary small label">{{ $consent.Scope }}</div>
+                     </div>
+                   </div>
+
+                 </div>
+               </div>
+             {{ end }}
+           </div>
+         {{ else }}
+
+           <div class="step">
+             <div class="content" style="width:100%">
+
+               <div class="steptop" style="width:100%">
+                 <div class="title" style="float:left;">None</div>
+               </div>
+               <div class="stepbottom" style="width:100%;clear:both;">
+                 <div class="description" style="margin-bottom:4px;">You have not previously consented access</div>
+               </div>
+
+             </div>
+           </div>
+
+         {{ end }}
+
+       </div>
+
 
       <div style="width:100%;text-align:center;">
         <div class="ui buttons">

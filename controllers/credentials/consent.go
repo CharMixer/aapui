@@ -1,6 +1,7 @@
 package credentials
 
 import (
+  "sort"
   "net/http"
   "net/url"
   "github.com/sirupsen/logrus"
@@ -133,19 +134,40 @@ func ShowConsent(env *app.Environment) gin.HandlerFunc {
         }
 */
 
-        var requestedConsents map[string][]UIConsent = make(map[string][]UIConsent) // Requested scopes grouped by audience
-        var grantedConsents map[string][]UIConsent = make(map[string][]UIConsent) // Granted scopes grouped by audience
+        var requestedConsents []UIConsent
+        var grantedConsents []UIConsent
 
         for _, cr := range authorization.ConsentRequests {
 
           if cr.Consented == true {
-            grantedConsents[cr.Audience] = append(grantedConsents[cr.Audience], UIConsent{ cr })
+            grantedConsents = append(grantedConsents, UIConsent{ cr })
             continue
           }
 
           // deny by default
-          requestedConsents[cr.Audience] = append(requestedConsents[cr.Audience], UIConsent{ cr })
+          requestedConsents = append(requestedConsents, UIConsent{ cr })
         }
+
+        // Sort by audience, title
+        sort.Slice(requestedConsents, func(i, j int) bool {
+          if requestedConsents[i].Audience < requestedConsents[j].Audience {
+              return true
+          }
+          if requestedConsents[i].Audience > requestedConsents[j].Audience {
+              return false
+          }
+          return requestedConsents[i].Title < requestedConsents[j].Title
+        })
+
+        sort.Slice(grantedConsents, func(i, j int) bool {
+          if grantedConsents[i].Audience < grantedConsents[j].Audience {
+              return true
+          }
+          if grantedConsents[i].Audience > grantedConsents[j].Audience {
+              return false
+          }
+          return grantedConsents[i].Title < grantedConsents[j].Title
+        })
 
         c.HTML(200, "consent.html", gin.H{
           "links": []map[string]string{
