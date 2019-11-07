@@ -22,7 +22,7 @@
 
     <form class="ui large form" action="{{ .consentUrl }}" method="post">
       {{ .csrfField }}
-      <input type="hidden" name="challenge" value="{{ .challenge }}" />
+      <input type="hidden" name="Challenge" value="{{ .challenge }}" />
 
       <div class="ui tiny fluid vertical steps unstackable">
         <div class="step">
@@ -57,9 +57,9 @@
 
       <div style="width:100%;text-align:center;">
         <div class="ui buttons">
-          <input type="submit" name="cancel" class="ui button" value="Cancel" />
+          <input type="submit" name="Cancel" class="ui button" value="Cancel" />
           <div class="or"></div>
-          <input type="submit" name="accept" class="ui positive button" value="Consent" />
+          <input type="submit" name="Accept" class="ui positive button" value="Consent" />
         </div>
       </div>
 
@@ -76,7 +76,7 @@
                 <div class="title" style="float:left;">Everything</div>
 
                 <div class="ui toggle checkbox" style="float:right;padding-right:1em;">
-                  <input type="checkbox" id="consent_all" name="consent[]" tabindex="0" class="hidden">
+                  <input type="checkbox" id="consent_all" tabindex="0" class="hidden">
                   <label for="consent_all">&nbsp;</label>
                 </div>
 
@@ -97,15 +97,17 @@
 
             {{ range $index, $publisher := .requestedConsents }}
 
-            {{ range $index, $consent := $publisher }}
+            {{ range $idx, $consent := $publisher }}
             <div class="step">
               <div class="content" style="width:100%">
+                <input type="hidden" name="Consents[{{$idx}}].Scope" value="{{$consent.Scope}}"/>
+                <input type="hidden" name="Consents[{{$idx}}].Audience" value="{{$consent.Audience}}"/>
 
                 <div class="steptop" style="width:100%">
                   <div class="title" style="float:left;">{{ $consent.Title }}</div>
 
                   <div class="ui toggle checkbox" style="float:right;padding-right:1em;">
-                    <input type="checkbox" id="consent_requested_{{$consent.Scope}}" name="consent[]" value="{{$consent.Scope}}" tabindex="0" class="hidden">
+                    <input type="checkbox" name="Consents[{{$idx}}].Consented" tabindex="0" class="hidden challengedConsents">
                     <label for="consent_requested_{{$consent.Scope}}">&nbsp;</label>
                   </div>
 
@@ -201,7 +203,7 @@
 <script type="text/javascript">
   $(document).ready(function(){
     $("#consent_all").click(function(){
-      $("input[id^=consent_requested_]").prop('checked', this.checked);
+      $("input.challengedConsents").prop('checked', this.checked);
     });
   });
 </script>
