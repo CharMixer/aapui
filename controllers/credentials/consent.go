@@ -83,57 +83,6 @@ func ShowConsent(env *app.Environment) gin.HandlerFunc {
           return
         }
 
-        // NOTE: App requested more scopes of user than was previously granted to the app according to hydra.
-
-/* TODO: MOVE TO BACKEND
-
-        // Calculate difference set and only asked for consent to scopes that are not already granted.
-        // Look for already consented scopes in consent model for request.
-        var grantedScopes []string
-        diffScopes := Difference(requestedScopes, grantedScopes)
-        if len(diffScopes) <= 0 {
-          // Nothing to accept everything already accepted.
-
-          var authorizeRequest = []aap.CreateConsentsAuthorizeRequest{ {Challenge:consentChallenge, GrantScopes:requestedScopes} }
-          status, responses, err := aap.CreateConsentsAuthorize(aapClient, config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.consents.authorize"), authorizeRequest)
-          if err != nil {
-            log.Debug(err.Error())
-            c.AbortWithStatus(http.StatusInternalServerError)
-            return
-          }
-
-          if status == http.StatusOK {
-
-            var authorization aap.CreateConsentsAuthorizeResponse
-            status, restErr := bulky.Unmarshal(0, responses, &authorization)
-            if len(restErr) > 0 {
-              for _,e := range restErr {
-                log.Debug("Rest error: " + e.Error)
-              }
-              c.AbortWithStatus(http.StatusInternalServerError)
-              return
-            }
-
-            if status == http.StatusOK {
-
-              if authorization.Authorized {
-                log.WithFields(logrus.Fields{ "redirect_to": authorization.RedirectTo }).Debug("Redirecting")
-                c.Redirect(http.StatusFound, authorization.RedirectTo)
-                c.Abort()
-                return
-              }
-
-            }
-
-          }
-
-          // Deny by default
-          log.WithFields(logrus.Fields{ "challenge":consentChallenge }).Debug("Accept consent challenge failed")
-          c.AbortWithStatus(http.StatusInternalServerError)
-          return
-        }
-*/
-
         var requestedConsents []UIConsent
         var grantedConsents []UIConsent
 
