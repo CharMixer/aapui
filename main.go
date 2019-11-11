@@ -18,7 +18,6 @@ import (
 
   "github.com/charmixer/aapui/app"
   "github.com/charmixer/aapui/config"
-  "github.com/charmixer/aapui/controllers/callbacks"
   "github.com/charmixer/aapui/controllers/credentials"
 )
 
@@ -62,7 +61,6 @@ func init() {
     "log.format": logFormat,
   }
 
-  gob.Register(&app.IdentityStore{})
   gob.Register(make(map[string][]string)) // This is for storing controller errors to show to user in ui
 }
 
@@ -85,15 +83,6 @@ func main() {
     Scopes:       config.GetStringSlice("oauth2.scopes.required"),
   }
 
-  idpConfig := &clientcredentials.Config{
-    ClientID:  config.GetString("oauth2.client.id"),
-    ClientSecret: config.GetString("oauth2.client.secret"),
-    TokenURL: provider.Endpoint().TokenURL,
-    Scopes: config.GetStringSlice("oauth2.scopes.required"),
-    EndpointParams: url.Values{"audience": {"idp"}},
-    AuthStyle: 2, // https://godoc.org/golang.org/x/oauth2#AuthStyle
-  }
-
   aapConfig := &clientcredentials.Config{
     ClientID:  config.GetString("oauth2.client.id"),
     ClientSecret: config.GetString("oauth2.client.secret"),
@@ -108,25 +97,10 @@ func main() {
     Constants: &app.EnvironmentConstants{
       RequestIdKey: "RequestId",
       LogKey: "log",
-      AccessTokenKey: "access_token",
-      IdTokenKey: "id_token",
-
-      SessionCredentialsStoreKey: appName + ".credentials",
       SessionStoreKey: appName,
-      SessionExchangeStateKey: "exchange.state",
-      SessionClaimStateKey: "claim.state",
-      SessionLogoutStateKey: "logout.state",
-
-      ContextAccessTokenKey: "access_token",
-      ContextIdTokenKey: "id_token",
-      ContextIdTokenHintKey: "id_token_hint",
-      ContextIdentityKey: "id",
-
-      IdentityStoreKey: "idstore",
     },
     Provider: provider,
     OAuth2Delegator: hydraConfig,
-    IdpConfig: idpConfig,
     AapConfig: aapConfig,
     Logger: log,
   }
@@ -164,7 +138,7 @@ func serve(env *app.Environment) {
     Secure: true,
     HttpOnly: true,
   })
-  r.Use(sessions.SessionsMany([]string{env.Constants.SessionCredentialsStoreKey, env.Constants.SessionStoreKey}, store))
+  r.Use(sessions.SessionsMany([]string{env.Constants.SessionStoreKey}, store))
 
   // Use CSRF on all our forms.
   adapterCSRF := adapter.Wrap(csrf.Protect([]byte(config.GetString("csrf.authKey")), csrf.Secure(true)))
@@ -177,23 +151,10 @@ func serve(env *app.Environment) {
   ep := r.Group("/")
   ep.Use(adapterCSRF)
   {
-    // Token exchange
-    // FIXME: Must be public accessible until we figure out to enfore that only hydra client may make callbacks
-    ep.GET("/callback", callbacks.ExchangeAuthorizationCodeCallback(env) )
-
     // Consent
     ep.GET(  "/consent", credentials.ShowConsent(env) )
     ep.POST( "/consent", credentials.SubmitConsent(env) )
   }
-
-  // Endpoints that require Authentication and Authorization
-  /*ep = r.Group("/")
-  ep.Use(adapterCSRF)
-  ep.Use( app.AuthenticationRequired(env) )
-  ep.Use( app.RequireIdentity(env) ) // Checks Authorization
-  {
-
-  }*/
 
   r.RunTLS(":" + config.GetString("serve.public.port"), config.GetString("serve.tls.cert.path"), config.GetString("serve.tls.key.path"))
 }

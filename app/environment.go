@@ -14,30 +14,10 @@ import (
   "github.com/charmixer/idpui/utils"
 )
 
-type IdentityStore struct {
-  Token *oauth2.Token
-  IdToken string
-}
-
 type EnvironmentConstants struct {
-  RequestIdKey   string
-  LogKey         string
-  AccessTokenKey string
-  IdTokenKey     string
-
-  SessionCredentialsStoreKey string // This hold the access token and id token
-  SessionStoreKey            string // This holds the application data
-  SessionExchangeStateKey    string
-  SessionClaimStateKey       string
-  SessionLogoutStateKey      string
-
-  ContextAccessTokenKey string
-  ContextIdTokenKey string
-  ContextIdTokenRawKey string
-  ContextIdTokenHintKey string
-  ContextIdentityKey string
-
-  IdentityStoreKey string
+  RequestIdKey    string
+  LogKey          string
+  SessionStoreKey string // This holds the application data
 }
 
 type Environment struct {
@@ -48,7 +28,6 @@ type Environment struct {
   Provider        *oidc.Provider
   OAuth2Delegator *oauth2.Config // hydra
 
-  IdpConfig *clientcredentials.Config
   AapConfig *clientcredentials.Config
 }
 
