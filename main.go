@@ -4,6 +4,9 @@ import (
   "net/url"
   "os"
   "encoding/gob"
+  "runtime"
+  "path"
+  "fmt"
   "golang.org/x/net/context"
   "golang.org/x/oauth2"
   "golang.org/x/oauth2/clientcredentials"
@@ -44,8 +47,15 @@ func init() {
   logDebug = config.GetInt("log.debug")
   logFormat = config.GetString("log.format")
 
+  log.SetReportCaller(true)
+  log.Formatter = &logrus.TextFormatter{
+    CallerPrettyfier: func(f *runtime.Frame) (string, string) {
+      filename := path.Base(f.File)
+      return "", fmt.Sprintf("%s:%d", filename, f.Line)
+    },
+  }
+
   // We only have 2 log levels. Things developers care about (debug) and things the user of the app cares about (info)
-  log = logrus.New();
   if logDebug == 1 {
     log.SetLevel(logrus.DebugLevel)
   } else {
