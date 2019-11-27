@@ -271,7 +271,12 @@ func SubmitConsent(env *app.Environment) gin.HandlerFunc {
             }
           }
 
-          if len(consentRequests) > 0 {
+          acceptConsents := false
+
+          lenConsentRequests := len(consentRequests)
+          if lenConsentRequests == 0 {
+            acceptConsents = true
+          } else if lenConsentRequests > 0 {
 
             // Update consent model
             status, _, err = aap.CreateConsents(aapClient, config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.consents.collection"), consentRequests)
@@ -282,38 +287,42 @@ func SubmitConsent(env *app.Environment) gin.HandlerFunc {
             }
 
             if status == http.StatusOK {
+              acceptConsents = true
+            }
 
-              // Update hydra model
-              var authorizeRequest = []aap.CreateConsentsAuthorizeRequest{ {Challenge: form.Challenge} }
-              status, responses, err := aap.CreateConsentsAuthorize(aapClient, config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.consents.authorize"), authorizeRequest)
-              if err != nil {
-                log.Debug(err.Error())
+          }
+
+          if acceptConsents == true {
+
+            // Update hydra model
+            var authorizeRequest = []aap.CreateConsentsAuthorizeRequest{ {Challenge: form.Challenge} }
+            status, responses, err := aap.CreateConsentsAuthorize(aapClient, config.GetString("aap.public.url") + config.GetString("aap.public.endpoints.consents.authorize"), authorizeRequest)
+            if err != nil {
+              log.Debug(err.Error())
+              c.AbortWithStatus(http.StatusInternalServerError)
+              return
+            }
+
+            if status == http.StatusOK {
+
+              var authorization aap.CreateConsentsAuthorizeResponse
+              status, restErr := bulky.Unmarshal(0, responses, &authorization)
+              if len(restErr) > 0 {
+                for _,e := range restErr {
+                  log.Debug("Rest error: " + e.Error)
+                }
                 c.AbortWithStatus(http.StatusInternalServerError)
                 return
               }
 
               if status == http.StatusOK {
 
-                var authorization aap.CreateConsentsAuthorizeResponse
-                status, restErr := bulky.Unmarshal(0, responses, &authorization)
-                if len(restErr) > 0 {
-                  for _,e := range restErr {
-                    log.Debug("Rest error: " + e.Error)
-                  }
-                  c.AbortWithStatus(http.StatusInternalServerError)
+                // Accept success redirect
+                if authorization.Authorized == true {
+                  log.WithFields(logrus.Fields{ "redirect_to": authorization.RedirectTo }).Debug("Redirecting")
+                  c.Redirect(http.StatusFound, authorization.RedirectTo)
+                  c.Abort()
                   return
-                }
-
-                if status == http.StatusOK {
-
-                  // Accept success redirect
-                  if authorization.Authorized == true {
-                    log.WithFields(logrus.Fields{ "redirect_to": authorization.RedirectTo }).Debug("Redirecting")
-                    c.Redirect(http.StatusFound, authorization.RedirectTo)
-                    c.Abort()
-                    return
-                  }
-
                 }
 
               }
