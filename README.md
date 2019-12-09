@@ -1,1 +1,1 @@
-# Golang Content Provider backend
+# Golang Access And Authorization Provider Frontend
