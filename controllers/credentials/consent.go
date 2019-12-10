@@ -124,7 +124,7 @@ func ShowConsent(env *app.Environment) gin.HandlerFunc {
           },
           "title": "Consent",
           csrf.TemplateTag: csrf.TemplateField(c.Request),
-          "provider": "Consent Provider",
+          "provider": config.GetString("provider.name"),
           "provideraction": "Consent to application access on your behalf",
           "challenge": consentChallenge,
           "consentUrl": config.GetString("aapui.public.endpoints.consent"),
