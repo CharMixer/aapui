@@ -19,9 +19,9 @@ import (
   oidc "github.com/coreos/go-oidc"
   "github.com/pborman/getopt"
 
-  "github.com/charmixer/aapui/app"
-  "github.com/charmixer/aapui/config"
-  "github.com/charmixer/aapui/controllers/credentials"
+  "github.com/opensentry/aapui/app"
+  "github.com/opensentry/aapui/config"
+  "github.com/opensentry/aapui/controllers/credentials"
 )
 
 const appName = "idpui"

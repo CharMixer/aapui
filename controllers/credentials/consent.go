@@ -9,11 +9,11 @@ import (
   "github.com/gorilla/csrf"
   "github.com/go-playground/form"
 
-  aap "github.com/charmixer/aap/client"
+  aap "github.com/opensentry/aap/client"
 
-  "github.com/charmixer/aapui/app"
-  "github.com/charmixer/aapui/config"
-  "github.com/charmixer/aapui/utils"
+  "github.com/opensentry/aapui/app"
+  "github.com/opensentry/aapui/config"
+  "github.com/opensentry/aapui/utils"
 
   bulky "github.com/charmixer/bulky/client"
 )
